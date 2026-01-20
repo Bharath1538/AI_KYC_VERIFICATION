@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Verify {{ doc_info.name }} - AI KYC{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <a href="/" class="back-button">
+        <i data-lucide="arrow-left"></i>
+        <span>Back</span>
+    </a>
+    <div class="page-title">
+        <div class="title-icon" style="--icon-color: {{ doc_info.color }}">
+            <i data-lucide="{{ doc_info.icon }}"></i>
+        </div>
+        <div>
+            <h1>{{ doc_info.name }} Verification</h1>
+            <p>{{ doc_info.description }}</p>
+        </div>
+    </div>
+</div>
+
+<!-- Verification Container -->
+<div class="verify-container">
+    <!-- Left: Input Section -->
+    <div class="verify-input">
+        <!-- Mode Tabs -->
+        <div class="mode-tabs">
+            <button class="mode-tab active" data-mode="upload">
+                <i data-lucide="upload"></i>
+                <span>Upload</span>
+            </button>
+            <button class="mode-tab" data-mode="camera">
+                <i data-lucide="camera"></i>
+                <span>Camera</span>
+            </button>
+        </div>
+
+        <!-- Upload Mode -->
+        <div class="input-panel" id="uploadPanel">
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-icon">
+                    <i data-lucide="cloud-upload"></i>
+                </div>
+                <h3>Drop your document here</h3>
+                <p>or click to browse files</p>
+                <span class="upload-hint">Supports JPG, PNG, WebP (max 16MB)</span>
+                <input type="file" id="fileInput" accept="image/*" hidden>
+            </div>
+
+            <!-- Image Preview -->
+            <div class="image-preview hidden" id="imagePreview">
+                <img id="previewImage" alt="Document preview">
+                <button class="remove-image" id="removeImage">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Camera Mode -->
+        <div class="input-panel hidden" id="cameraPanel">
+            <div class="camera-container">
+                <video id="cameraFeed" autoplay playsinline></video>
+                <div class="camera-overlay">
+                    <div class="scan-frame">
+                        <div class="corner tl"></div>
+                        <div class="corner tr"></div>
+                        <div class="corner bl"></div>
+                        <div class="corner br"></div>
+                    </div>
+                </div>
+                <div class="camera-controls">
+                    <button class="capture-btn" id="captureBtn">
+                        <i data-lucide="aperture"></i>
+                    </button>
+                </div>
+            </div>
+            <p class="camera-hint">Position your {{ doc_info.name }} within the frame</p>
+        </div>
+
+        <!-- Verify Button -->
+        <button class="verify-btn" id="verifyBtn" disabled>
+            <i data-lucide="scan"></i>
+            <span>Verify Document</span>
+        </button>
+    </div>
+
+    <!-- Right: Results Section -->
+    <div class="verify-results" id="resultsPanel">
+        <div class="results-placeholder">
+            <div class="placeholder-icon">
+                <i data-lucide="scan-search"></i>
+            </div>
+            <h3>Ready to Verify</h3>
+            <p>Upload or capture a document to see the verification results</p>
+        </div>
+
+        <!-- Loading State -->
+        <div class="results-loading hidden" id="loadingState">
+            <div class="spinner"></div>
+            <h3>Analyzing Document...</h3>
+            <p>Our AI is extracting information</p>
+        </div>
+
+        <!-- Results Content -->
+        <div class="results-content hidden" id="resultsContent">
+            <div class="result-header" id="resultHeader">
+                <div class="result-status">
+                    <i data-lucide="check-circle-2"></i>
+                    <span>Verified</span>
+                </div>
+                <div class="confidence-badge" id="confidenceBadge">
+                    <i data-lucide="gauge"></i>
+                    <span>95%</span>
+                </div>
+            </div>
+
+            <div class="result-type" id="resultType">
+                <span class="type-label">Document Type</span>
+                <span class="type-value">Aadhaar Card</span>
+            </div>
+
+            <div class="extracted-data" id="extractedData">
+                <!-- Populated by JavaScript -->
+            </div>
+
+            <button class="reset-btn" id="resetBtn">
+                <i data-lucide="refresh-cw"></i>
+                <span>Verify Another</span>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/verify.js"></script>
+{% endblock %}

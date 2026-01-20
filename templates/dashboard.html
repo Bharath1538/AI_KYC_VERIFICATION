@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - AI KYC Verification{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero">
+    <div class="hero-content">
+        <div class="hero-text">
+            <span class="hero-badge">
+                <i data-lucide="sparkles"></i>
+                AI-Powered
+            </span>
+            <h1 class="hero-title">KYC Verification</h1>
+            <p class="hero-subtitle">Instantly verify identity documents with advanced AI. Fast, accurate, and secure
+                document authentication.</p>
+        </div>
+        <div class="hero-visual">
+            <div class="ai-brain">
+                <div class="brain-core">
+                    <i data-lucide="brain-circuit"></i>
+                </div>
+                <div class="brain-ring ring-1"></div>
+                <div class="brain-ring ring-2"></div>
+                <div class="brain-ring ring-3"></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Document Types Section -->
+<section class="documents-section">
+    <div class="section-header">
+        <h2>Select Document Type</h2>
+        <p>Choose the document you want to verify</p>
+    </div>
+
+    <div class="documents-grid">
+        {% for doc_id, doc in document_types.items() %}
+        <a href="/verify/{{ doc_id }}" class="document-card" style="--card-color: {{ doc.color }}">
+            <div class="card-icon">
+                <i data-lucide="{{ doc.icon }}"></i>
+            </div>
+            <div class="card-content">
+                <h3>{{ doc.name }}</h3>
+                <p>{{ doc.description }}</p>
+            </div>
+            <div class="card-arrow">
+                <i data-lucide="arrow-right"></i>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="stats-section">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i data-lucide="zap"></i>
+        </div>
+        <div class="stat-content">
+            <span class="stat-value">
+                < 3s</span>
+                    <span class="stat-label">Verification Time</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i data-lucide="shield-check"></i>
+        </div>
+        <div class="stat-content">
+            <span class="stat-value">99.2%</span>
+            <span class="stat-label">Accuracy Rate</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i data-lucide="file-stack"></i>
+        </div>
+        <div class="stat-content">
+            <span class="stat-value">4+</span>
+            <span class="stat-label">Document Types</span>
+        </div>
+    </div>
+</section>
+{% endblock %}

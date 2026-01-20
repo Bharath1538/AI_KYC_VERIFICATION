@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI KYC Verification{% endblock %}</title>
+    <meta name="description" content="AI-powered KYC document verification system">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i data-lucide="scan-face"></i>
+                </div>
+                <span class="logo-text">KYC Verify</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="/" class="nav-item {% if request.url.path == '/' %}active{% endif %}">
+                <i data-lucide="layout-dashboard"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/liveness" class="nav-item {% if '/liveness' in request.url.path %}active{% endif %}">
+                <i data-lucide="scan-face"></i>
+                <span>Face Liveness</span>
+            </a>
+            <a href="/verify/aadhaar" class="nav-item {% if '/verify' in request.url.path %}active{% endif %}">
+                <i data-lucide="file-check"></i>
+                <span>Verify Documents</span>
+            </a>
+            <a href="/history" class="nav-item {% if '/history' in request.url.path %}active{% endif %}">
+                <i data-lucide="history"></i>
+                <span>History</span>
+            </a>
+            <a href="#" class="nav-item disabled">
+                <i data-lucide="settings"></i>
+                <span>Settings</span>
+                <span class="badge">Soon</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="version-badge">
+                <i data-lucide="cpu"></i>
+                <span>AI Powered</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Mobile Menu Toggle -->
+    <button class="mobile-menu-toggle" id="mobileMenuToggle">
+        <i data-lucide="menu"></i>
+    </button>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Core JS -->
+    <script src="/static/js/main.js"></script>
+
+    {% block scripts %}{% endblock %}
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

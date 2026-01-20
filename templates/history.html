@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Verification History - AI KYC{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <div class="title-icon" style="--icon-color: #f59e0b">
+            <i data-lucide="history"></i>
+        </div>
+        <div>
+            <h1>Verification History</h1>
+            <p>View all past document verifications</p>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Row -->
+<div class="history-stats">
+    <div class="stat-card">
+        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-green);">
+            <i data-lucide="check-circle-2"></i>
+        </div>
+        <div class="stat-content">
+            <span class="stat-value" id="totalVerified">0</span>
+            <span class="stat-label">Verified</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--accent-red);">
+            <i data-lucide="x-circle"></i>
+        </div>
+        <div class="stat-content">
+            <span class="stat-value" id="totalFailed">0</span>
+            <span class="stat-label">Failed</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--accent-blue);">
+            <i data-lucide="file-scan"></i>
+        </div>
+        <div class="stat-content">
+            <span class="stat-value" id="totalScans">0</span>
+            <span class="stat-label">Total Scans</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: rgba(139, 92, 246, 0.1); color: var(--accent-purple);">
+            <i data-lucide="percent"></i>
+        </div>
+        <div class="stat-content">
+            <span class="stat-value" id="successRate">0%</span>
+            <span class="stat-label">Success Rate</span>
+        </div>
+    </div>
+</div>
+
+<!-- History Table -->
+<div class="history-container">
+    <div class="history-header">
+        <div class="history-filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="verified">Verified</button>
+            <button class="filter-btn" data-filter="failed">Failed</button>
+        </div>
+        <button class="clear-history-btn" id="clearHistoryBtn">
+            <i data-lucide="trash-2"></i>
+            <span>Clear History</span>
+        </button>
+    </div>
+
+    <div class="history-table-wrapper">
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th>Date & Time</th>
+                    <th>Document Type</th>
+                    <th>Name</th>
+                    <th>Aadhaar Number</th>
+                    <th>Status</th>
+                    <th>Confidence</th>
+                </tr>
+            </thead>
+            <tbody id="historyTableBody">
+                <!-- History rows will be inserted here -->
+            </tbody>
+        </table>
+
+        <!-- Empty State -->
+        <div class="history-empty" id="historyEmpty">
+            <div class="empty-icon">
+                <i data-lucide="inbox"></i>
+            </div>
+            <h3>No Verification History</h3>
+            <p>Your verification history will appear here once you start scanning documents.</p>
+            <a href="/verify/aadhaar" class="start-verify-btn">
+                <i data-lucide="scan"></i>
+                <span>Start Verification</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/history.js"></script>
+{% endblock %}

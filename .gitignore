@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+*.jpg
+*.jpeg
+*.png
+!aadhar1.jpg
+!logo.png
+uploads/
+verified_docs/
+.env

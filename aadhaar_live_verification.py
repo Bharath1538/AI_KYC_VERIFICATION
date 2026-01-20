@@ -566,8 +566,12 @@ class LiveAadhaarVerifier:
     
     def _init_camera(self) -> bool:
         """Initialize video capture"""
-        # Use DirectShow (CAP_DSHOW) backend for better Windows compatibility (fixes DroidCam green screen)
-        self.cap = cv2.VideoCapture(self.camera_id, cv2.CAP_DSHOW)
+        import platform
+        # Use platform-specific backend: CAP_DSHOW for Windows, default for Mac/Linux
+        if platform.system() == "Windows":
+            self.cap = cv2.VideoCapture(self.camera_id, cv2.CAP_DSHOW)
+        else:
+            self.cap = cv2.VideoCapture(self.camera_id)
         
         if not self.cap.isOpened():
             logger.error(f"Failed to open camera {self.camera_id}")

@@ -23,8 +23,9 @@ def load_config(config_path="config.json"):
 
 CONFIG = load_config()
 
-# Initialize PaddleOCR
-OCR = PaddleOCR(use_angle_cls=True, lang="en")
+# Initialize PaddleOCR - use multilingual for Indian documents
+# Using 'en' for now since 'hi' requires separate model download
+OCR = PaddleOCR(use_textline_orientation=True, lang="en", show_log=False)
 
 
 # Preprocessing functions

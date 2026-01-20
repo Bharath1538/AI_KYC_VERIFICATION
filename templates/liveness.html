@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Face Liveness Check - AI KYC{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <a href="/" class="back-button">
+        <i data-lucide="arrow-left"></i>
+        <span>Back</span>
+    </a>
+    <div class="page-title">
+        <div class="title-icon" style="--icon-color: #8b5cf6">
+            <i data-lucide="scan-face"></i>
+        </div>
+        <div>
+            <h1>Face Liveness Detection</h1>
+            <p>Verify you're a real person</p>
+        </div>
+    </div>
+</div>
+
+<!-- Liveness Container -->
+<div class="liveness-container">
+    <!-- Camera Section -->
+    <div class="liveness-camera">
+        <div class="camera-wrapper">
+            <video id="livenessVideo" autoplay playsinline></video>
+            <canvas id="faceCanvas" class="face-overlay"></canvas>
+
+            <!-- Face Guide Overlay -->
+            <div class="face-guide" id="faceGuide">
+                <svg viewBox="0 0 200 250" class="face-outline">
+                    <ellipse cx="100" cy="120" rx="70" ry="90" fill="none" stroke="currentColor" stroke-width="3"
+                        stroke-dasharray="10,5" />
+                </svg>
+                <p class="guide-text" id="guideText">Position your face in the oval</p>
+            </div>
+
+            <!-- Progress Ring -->
+            <div class="progress-ring-container" id="progressRing">
+                <svg class="progress-ring" viewBox="0 0 120 120">
+                    <circle class="progress-ring-bg" cx="60" cy="60" r="54" />
+                    <circle class="progress-ring-fill" cx="60" cy="60" r="54" id="progressCircle" />
+                </svg>
+                <div class="progress-icon" id="progressIcon">
+                    <i data-lucide="check"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Challenge Instruction -->
+        <div class="challenge-instruction" id="challengeInstruction">
+            <div class="challenge-icon" id="challengeIcon">
+                <i data-lucide="eye"></i>
+            </div>
+            <div class="challenge-text">
+                <h3 id="challengeTitle">Get Ready</h3>
+                <p id="challengeDesc">Position your face in the oval to start</p>
+            </div>
+        </div>
+
+        <!-- Start Button -->
+        <button class="start-liveness-btn" id="startLivenessBtn">
+            <i data-lucide="play"></i>
+            <span>Start Liveness Check</span>
+        </button>
+    </div>
+
+    <!-- Steps Section -->
+    <div class="liveness-steps">
+        <h3>Liveness Verification Steps</h3>
+
+        <div class="step-list">
+            <div class="step-item" id="step1" data-step="1">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h4>Face Detection</h4>
+                    <p>Position your face in the frame</p>
+                </div>
+                <div class="step-status">
+                    <i data-lucide="circle" class="pending"></i>
+                </div>
+            </div>
+
+            <div class="step-item" id="step2" data-step="2">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h4>Blink Detection</h4>
+                    <p>Blink your eyes naturally</p>
+                </div>
+                <div class="step-status">
+                    <i data-lucide="circle" class="pending"></i>
+                </div>
+            </div>
+
+            <div class="step-item" id="step3" data-step="3">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h4>Smile Detection</h4>
+                    <p>Give a natural smile</p>
+                </div>
+                <div class="step-status">
+                    <i data-lucide="circle" class="pending"></i>
+                </div>
+            </div>
+
+            <div class="step-item" id="step4" data-step="4">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h4>Head Turn</h4>
+                    <p>Slowly turn your head left then right</p>
+                </div>
+                <div class="step-status">
+                    <i data-lucide="circle" class="pending"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Section -->
+        <div class="liveness-result hidden" id="livenessResult">
+            <div class="result-icon success" id="resultIcon">
+                <i data-lucide="shield-check"></i>
+            </div>
+            <h3 id="resultTitle">Liveness Verified!</h3>
+            <p id="resultDesc">You have been verified as a real person.</p>
+            <div class="result-actions">
+                <a href="/verify/aadhaar" class="continue-btn">
+                    <i data-lucide="arrow-right"></i>
+                    <span>Continue to Document Verification</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/liveness.js"></script>
+{% endblock %}

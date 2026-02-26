@@ -1,0 +1,567 @@
+{% extends "base.html" %}
+
+{% block title %}Staged Verification - AI KYC{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i data-lucide="layers"></i>
+        Staged KYC Verification
+    </h1>
+    <p class="page-subtitle">Complete multi-level identity verification workflow</p>
+</div>
+
+<div class="workflow-container">
+    <!-- Level Progress -->
+    <div class="level-progress">
+        <div class="progress-track">
+            {% for level in levels %}
+            <div class="level-node" data-level="{{ level.id }}">
+                <div class="level-circle">
+                    <span class="level-number">{{ level.id }}</span>
+                    <i data-lucide="check" class="level-check"></i>
+                </div>
+                <div class="level-info">
+                    <span class="level-name">{{ level.name }}</span>
+                    <span class="level-desc">{{ level.description }}</span>
+                </div>
+            </div>
+            {% if level.id < 4 %} <div class="level-connector">
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Main Content Grid -->
+<div class="workflow-grid">
+    <!-- Left: Forms -->
+    <div class="workflow-forms">
+        <div class="card">
+            <div class="card-header">
+                <h3><i data-lucide="clipboard-list"></i> Verification Details</h3>
+            </div>
+            <div class="card-body">
+                <!-- User ID -->
+                <div class="form-group">
+                    <label for="userId">User ID / Aadhaar Number</label>
+                    <input type="text" id="userId" class="form-input" placeholder="e.g., 6106 2339 9374"
+                        value="6106 2339 9374">
+                </div>
+
+                <!-- Target Level -->
+                <div class="form-group">
+                    <label for="targetLevel">Target Verification Level</label>
+                    <select id="targetLevel" class="form-input">
+                        <option value="1">Level 1 - Basic (Aadhaar + Liveness)</option>
+                        <option value="2">Level 2 - Verified (+ PAN)</option>
+                        <option value="3">Level 3 - Full (+ Bank + Video KYC)</option>
+                        <option value="4">Level 4 - EDD (+ Income + AML)</option>
+                    </select>
+                </div>
+
+                <!-- Level 0: OTP -->
+                <div class="level-form" id="form-level-0">
+                    <h4 class="form-section-title">
+                        <span class="level-badge level-0">L0</span> Lite Verification
+                    </h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Phone</label>
+                            <input type="text" id="l0-phone" class="form-input" value="+919876543211">
+                        </div>
+                        <div class="form-group">
+                            <label>OTP</label>
+                            <input type="text" id="l0-phone-otp" class="form-input" value="123456">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="l0-email" class="form-input" value="user@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label>OTP</label>
+                            <input type="text" id="l0-email-otp" class="form-input" value="123456">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Level 1: Aadhaar -->
+                <div class="level-form" id="form-level-1">
+                    <h4 class="form-section-title">
+                        <span class="level-badge level-1">L1</span> Aadhaar Verification
+                    </h4>
+                    <div class="form-group">
+                        <label>Aadhaar Data (JSON)</label>
+                        <textarea id="l1-aadhaar-data" class="form-input" rows="4">{
+    "aadhaar_number": "6106 2339 9374",
+    "full_name": "Adithya Vardan M",
+    "dob": "20/10/2004"
+}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Selfie Data (Base64)</label>
+                        <input type="text" id="l1-selfie" class="form-input" placeholder="Captured from liveness check">
+                        <small class="form-help">Will use liveness selfie if available</small>
+                    </div>
+                </div>
+
+                <!-- Level 2: PAN -->
+                <div class="level-form" id="form-level-2">
+                    <h4 class="form-section-title">
+                        <span class="level-badge level-2">L2</span> PAN Verification
+                    </h4>
+                    <div class="form-group">
+                        <label>PAN Data (JSON)</label>
+                        <textarea id="l2-pan-data" class="form-input" rows="3">{
+    "pan_number": "ABCDE1234F",
+    "full_name": "Adithya Vardan M"
+}</textarea>
+                    </div>
+                </div>
+
+                <!-- Level 3: Video KYC -->
+                <div class="level-form hidden" id="form-level-3">
+                    <h4 class="form-section-title">
+                        <span class="level-badge level-3">L3</span> Video KYC
+                    </h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Bank Account</label>
+                            <input type="text" id="l3-bank" class="form-input" value="1234567890">
+                        </div>
+                        <div class="form-group">
+                            <label>IFSC</label>
+                            <input type="text" id="l3-ifsc" class="form-input" value="HDFC0001234">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Address (JSON)</label>
+                        <textarea id="l3-address" class="form-input" rows="2">{"pincode": "500001"}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Video Call ID</label>
+                        <input type="text" id="l3-video" class="form-input" value="vid_call_123">
+                    </div>
+                </div>
+
+                <!-- Level 4: EDD -->
+                <div class="level-form hidden" id="form-level-4">
+                    <h4 class="form-section-title">
+                        <span class="level-badge level-4">L4</span> Enhanced Due Diligence
+                    </h4>
+                    <div class="form-group">
+                        <label>Income Data (JSON)</label>
+                        <textarea id="l4-income" class="form-input" rows="3">{
+    "doc_type": "ITR",
+    "annual_income": 1000000
+}</textarea>
+                    </div>
+                </div>
+
+                <button id="startWorkflow" class="btn btn-primary btn-block">
+                    <i data-lucide="play"></i>
+                    Start Verification
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Logs & Results -->
+    <div class="workflow-results">
+        <!-- Live Log -->
+        <div class="card">
+            <div class="card-header">
+                <h3><i data-lucide="terminal"></i> Verification Log</h3>
+            </div>
+            <div class="card-body">
+                <div id="workflowLog" class="log-container">
+                    <p class="log-placeholder">Click "Start Verification" to begin...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result -->
+        <div class="card hidden" id="resultCard">
+            <div class="card-header">
+                <h3><i data-lucide="award"></i> Verification Result</h3>
+            </div>
+            <div class="card-body">
+                <div id="resultContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<style>
+    /* Workflow specific styles */
+    .workflow-container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .level-progress {
+        background: var(--bg-card);
+        border-radius: var(--border-radius-lg);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        border: 1px solid var(--border-color);
+    }
+
+    .progress-track {
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 0;
+        flex-wrap: wrap;
+    }
+
+    .level-node {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        position: relative;
+    }
+
+    .level-circle {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: var(--bg-secondary);
+        border: 3px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        color: var(--text-secondary);
+        transition: all 0.3s ease;
+    }
+
+    .level-node.active .level-circle {
+        border-color: var(--accent-blue);
+        background: var(--accent-blue);
+        color: white;
+    }
+
+    .level-node.completed .level-circle {
+        border-color: var(--accent-green);
+        background: var(--accent-green);
+        color: white;
+    }
+
+    .level-node.completed .level-number {
+        display: none;
+    }
+
+    .level-node:not(.completed) .level-check {
+        display: none;
+    }
+
+    .level-info {
+        text-align: center;
+    }
+
+    .level-name {
+        display: block;
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.875rem;
+    }
+
+    .level-desc {
+        display: block;
+        color: var(--text-muted);
+        font-size: 0.75rem;
+    }
+
+    .level-connector {
+        width: 60px;
+        height: 3px;
+        background: var(--border-color);
+        margin-top: 24px;
+    }
+
+    .workflow-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+    }
+
+    @media (max-width: 1024px) {
+        .workflow-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .level-form {
+        background: var(--bg-secondary);
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid var(--border-color);
+    }
+
+    .form-section-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        font-size: 1rem;
+    }
+
+    .level-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .level-badge.level-0 {
+        background: #6366f1;
+        color: white;
+    }
+
+    .level-badge.level-1 {
+        background: #10b981;
+        color: white;
+    }
+
+    .level-badge.level-2 {
+        background: #f59e0b;
+        color: white;
+    }
+
+    .level-badge.level-3 {
+        background: #ec4899;
+        color: white;
+    }
+
+    .level-badge.level-4 {
+        background: #8b5cf6;
+        color: white;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .form-help {
+        color: var(--text-muted);
+        font-size: 0.75rem;
+    }
+
+    .log-container {
+        background: #0d1117;
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        min-height: 300px;
+        max-height: 400px;
+        overflow-y: auto;
+        font-family: 'Fira Code', monospace;
+        font-size: 0.875rem;
+    }
+
+    .log-placeholder {
+        color: var(--text-muted);
+    }
+
+    .log-entry {
+        margin-bottom: 0.5rem;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .log-entry.success {
+        color: var(--accent-green);
+    }
+
+    .log-entry.error {
+        color: var(--accent-red);
+    }
+
+    .log-entry.info {
+        color: var(--accent-blue);
+    }
+
+    .btn-block {
+        width: 100%;
+        margin-top: 1rem;
+    }
+
+    .result-success {
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid var(--accent-green);
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        text-align: center;
+    }
+
+    .result-success h4 {
+        color: var(--accent-green);
+        margin-bottom: 0.5rem;
+    }
+
+    .result-failed {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid var(--accent-red);
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+    }
+
+    .result-failed h4 {
+        color: var(--accent-red);
+        margin-bottom: 0.5rem;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const startBtn = document.getElementById('startWorkflow');
+        const logContainer = document.getElementById('workflowLog');
+        const resultCard = document.getElementById('resultCard');
+        const resultContent = document.getElementById('resultContent');
+        const targetLevelSelect = document.getElementById('targetLevel');
+
+        // Load selfie from liveness if available
+        const livenessSelfie = sessionStorage.getItem('livenessSelfie');
+        if (livenessSelfie) {
+            document.getElementById('l1-selfie').value = livenessSelfie.substring(0, 50) + '...';
+        }
+
+        // Update form visibility
+        targetLevelSelect.addEventListener('change', updateFormVisibility);
+        updateFormVisibility();
+
+        function updateFormVisibility() {
+            const target = parseInt(targetLevelSelect.value);
+            document.getElementById('form-level-3').classList.toggle('hidden', target < 3);
+            document.getElementById('form-level-4').classList.toggle('hidden', target < 4);
+        }
+
+        function addLog(message, type = 'info') {
+            const placeholder = logContainer.querySelector('.log-placeholder');
+            if (placeholder) placeholder.remove();
+
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = message;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        startBtn.addEventListener('click', async function () {
+            // Clear previous
+            logContainer.innerHTML = '';
+            resultCard.classList.add('hidden');
+            startBtn.disabled = true;
+            startBtn.innerHTML = '<i data-lucide="loader"></i> Processing...';
+            lucide.createIcons();
+
+            addLog('Starting verification workflow...', 'info');
+
+            try {
+                // Build request data
+                const userId = document.getElementById('userId').value;
+                const targetLevel = parseInt(targetLevelSelect.value);
+
+                const data = {
+                    level0: {
+                        phone: document.getElementById('l0-phone').value,
+                        phone_otp: document.getElementById('l0-phone-otp').value,
+                        email: document.getElementById('l0-email').value,
+                        email_otp: document.getElementById('l0-email-otp').value
+                    },
+                    level1: {
+                        aadhaar_data: JSON.parse(document.getElementById('l1-aadhaar-data').value),
+                        selfie_data: livenessSelfie || ''
+                    },
+                    level2: JSON.parse(document.getElementById('l2-pan-data').value)
+                };
+
+                if (targetLevel >= 3) {
+                    data.level3 = {
+                        bank_account: document.getElementById('l3-bank').value,
+                        ifsc: document.getElementById('l3-ifsc').value,
+                        address_data: JSON.parse(document.getElementById('l3-address').value),
+                        video_call_id: document.getElementById('l3-video').value
+                    };
+                }
+
+                if (targetLevel >= 4) {
+                    data.level4 = {
+                        income_data: JSON.parse(document.getElementById('l4-income').value)
+                    };
+                }
+
+                addLog(`User: ${userId}, Target: Level ${targetLevel}`, 'info');
+
+                // Call API
+                const response = await fetch('/api/workflow/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        target_level: targetLevel,
+                        data: data
+                    })
+                });
+
+                const result = await response.json();
+
+                // Display logs
+                if (result.logs) {
+                    result.logs.forEach(log => {
+                        const type = log.includes('✅') ? 'success' :
+                            log.includes('❌') || log.includes('Failed') ? 'error' : 'info';
+                        addLog(log, type);
+                    });
+                }
+
+                // Display result
+                resultCard.classList.remove('hidden');
+                if (result.success) {
+                    const profile = result.user_profile || {};
+                    resultContent.innerHTML = `
+                    <div class="result-success">
+                        <h4>✅ Verification Successful!</h4>
+                        <p>User is now at Level ${profile.kyc_level || 'N/A'}</p>
+                        <pre style="text-align:left;margin-top:1rem;font-size:0.75rem;">${JSON.stringify(profile.verified_data || {}, null, 2)}</pre>
+                    </div>
+                `;
+
+                    // Update level nodes
+                    for (let i = 0; i <= (profile.kyc_level || 0); i++) {
+                        document.querySelector(`.level-node[data-level="${i}"]`)?.classList.add('completed');
+                    }
+                } else {
+                    resultContent.innerHTML = `
+                    <div class="result-failed">
+                        <h4>❌ Verification Failed</h4>
+                        <p>${result.error || 'Unknown error'}</p>
+                    </div>
+                `;
+                }
+
+            } catch (err) {
+                addLog(`Error: ${err.message}`, 'error');
+                resultCard.classList.remove('hidden');
+                resultContent.innerHTML = `
+                <div class="result-failed">
+                    <h4>❌ Error</h4>
+                    <p>${err.message}</p>
+                </div>
+            `;
+            } finally {
+                startBtn.disabled = false;
+                startBtn.innerHTML = '<i data-lucide="play"></i> Start Verification';
+                lucide.createIcons();
+            }
+        });
+    });
+</script>
+{% endblock %}

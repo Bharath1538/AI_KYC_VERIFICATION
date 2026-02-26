@@ -13,8 +13,12 @@ import logging
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-from fastapi import FastAPI, Request, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, Request, UploadFile, File, Form, HTTPException, Security, Depends
+from fastapi.security.api_key import APIKeyHeader
 from fastapi.responses import HTMLResponse, JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from PIL import Image
@@ -47,12 +51,15 @@ except ImportError as e:
 
 # Import mock database for verification
 try:
-    from mock_database import verify_aadhaar, MOCK_AADHAAR_DATABASE
+    from mock_database import verify_aadhaar, MOCK_AADHAAR_DATABASE, validate_api_key
     DATABASE_AVAILABLE = True
     logger.info(f"Mock database loaded with {len(MOCK_AADHAAR_DATABASE)} records")
 except ImportError as e:
     logger.warning(f"Mock database not available: {e}")
     DATABASE_AVAILABLE = False
+    
+    def validate_api_key(api_key: str):
+        return None
 
 # Import face matching module
 try:
@@ -72,6 +79,16 @@ except ImportError as e:
     logger.warning(f"PDF generator not available: {e}")
     PDF_AVAILABLE = False
     REPORTLAB_AVAILABLE = False
+
+# Import KYC Workflow (LangGraph)
+KYC_WORKFLOW_AVAILABLE = False
+kyc_graph = None
+try:
+    from kyc_workflow import build_staged_graph
+    KYC_WORKFLOW_AVAILABLE = True
+    logger.info("KYC Workflow module loaded")
+except ImportError as e:
+    logger.warning(f"KYC Workflow not available: {e}")
 
 # Initialize models
 classifier_model = None
@@ -104,12 +121,33 @@ def init_models():
         except Exception as e:
             logger.error(f"Failed to load Surya: {e}")
 
+# Set up Rate Limiter
+limiter = Limiter(key_func=get_remote_address)
+
+# Set up API Key Header Dependency
+API_KEY_NAME = "X-API-Key"
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
+
+async def get_api_key(api_key_header: str = Security(api_key_header)):
+    if api_key_header:
+        record = validate_api_key(api_key_header)
+        if record and record.is_active:
+            return record
+    raise HTTPException(
+        status_code=401,
+        detail="Invalid or missing API Key"
+    )
+
 # Initialize FastAPI
 app = FastAPI(
     title="AI KYC Verification",
     description="AI-powered document verification system",
     version="1.0.0"
 )
+
+# Add Rate Limiter state to app
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Mount static files
 BASE_DIR = Path(__file__).resolve().parent
@@ -337,8 +375,93 @@ async def verify_page(request: Request, doc_type: str):
 # API Routes
 # =====================================================
 
+# =====================================================
+# External REST API Routes (B2B)
+# =====================================================
+
+@app.post("/api/v1/kyc/verify/document")
+@limiter.limit("10/minute")
+async def api_verify_document(
+    request: Request,
+    file: UploadFile = File(...),
+    api_key_record: Any = Depends(get_api_key)
+):
+    """
+    B2B API Endpoint for document verification.
+    Requires X-API-Key header.
+    """
+    company_name = api_key_record.company_name
+    logger.info(f"[API] Verification request from company: {company_name} (Tier: {api_key_record.tier})")
+
+    # Validate file
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file selected")
+    
+    if not allowed_file(file.filename):
+        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: JPG, PNG, WebP, GIF")
+    
+    contents = await file.read()
+    if len(contents) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="File limit exceeded (Max 16MB)")
+        
+    try:
+        # Save file temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp:
+            tmp.write(contents)
+            filepath = tmp.name
+            
+        # 1. Classification
+        classify_result = classify_document(filepath)
+        doc_type = classify_result.get('doc_type', 'Unknown')
+        confidence = classify_result.get('confidence', 0)
+        
+        # 2. Text Extraction
+        extracted_data = {}
+        if SURYA_AVAILABLE and confidence > 0.5:
+            ocr_text = extract_text_surya(filepath)
+            if "aadhaar" in doc_type.lower() or "aadhar" in doc_type.lower():
+                extracted_data = parse_aadhaar_fields(ocr_text)
+
+        # 3. Database Verification
+        verification_result = None
+        if DATABASE_AVAILABLE and extracted_data.get("Aadhaar Number"):
+            verification_result = verify_aadhaar(extracted_data)
+
+        # Clean up
+        os.unlink(filepath)
+        
+        # Log successful API transaction
+        logger.info(f"[API] Success. Company: {company_name} | Doc: {doc_type} | Conf: {confidence:.2f}")
+
+        # Construct standardized API response
+        return JSONResponse({
+            "status": "success",
+            "metadata": {
+                "client": company_name,
+                "tier": api_key_record.tier
+            },
+            "data": {
+                "document": {
+                    "type": doc_type,
+                    "confidence_score": round(confidence, 4)
+                },
+                "extracted_fields": extracted_data,
+                "database_verification": verification_result if verification_result else {
+                    "status": "skipped",
+                    "message": "Not applicable or data missing"
+                }
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"[API] Error for {company_name}: {e}")
+        raise HTTPException(status_code=500, detail="Internal API Error during verification")
+
+
 @app.post("/api/verify")
-async def verify_document(file: UploadFile = File(...)):
+# Rate limit the internal UI endpoint slightly higher
+@limiter.limit("30/minute") 
+async def verify_document(request: Request, file: UploadFile = File(...)):
     """API endpoint to verify an uploaded document."""
     
     # Validate file
@@ -423,7 +546,9 @@ async def verify_document(file: UploadFile = File(...)):
 
 
 @app.post("/api/face-match")
+@limiter.limit("20/minute")
 async def face_match_endpoint(
+    request: Request,
     file: UploadFile = File(...),
     selfie: str = Form(None)
 ):
@@ -477,6 +602,7 @@ async def face_match_endpoint(
 
 
 @app.post("/api/generate-pdf")
+@limiter.limit("10/minute")
 async def generate_pdf_endpoint(request: Request):
     """Generate a PDF verification certificate."""
     from fastapi.responses import Response
@@ -512,7 +638,8 @@ async def generate_pdf_endpoint(request: Request):
 
 
 @app.get("/api/health")
-async def health_check():
+@limiter.limit("60/minute")
+async def health_check(request: Request):
     """Health check endpoint."""
     return {
         "status": "healthy",
@@ -520,8 +647,98 @@ async def health_check():
         "surya_available": SURYA_AVAILABLE and recognition_predictor is not None,
         "database_available": DATABASE_AVAILABLE,
         "face_matching_available": FACE_MATCHING_AVAILABLE,
-        "pdf_available": PDF_AVAILABLE
+        "pdf_available": PDF_AVAILABLE,
+        "workflow_available": KYC_WORKFLOW_AVAILABLE
     }
+
+
+# =====================================================
+# Staged KYC Workflow Routes
+# =====================================================
+
+@app.get("/workflow", response_class=HTMLResponse)
+async def workflow_page(request: Request):
+    """Serve the staged workflow verification page."""
+    return templates.TemplateResponse("workflow.html", {
+        "request": request,
+        "workflow_available": KYC_WORKFLOW_AVAILABLE,
+        "levels": [
+            {"id": 0, "name": "Lite", "description": "Phone + Email OTP"},
+            {"id": 1, "name": "Basic", "description": "Aadhaar + Liveness + Face Match"},
+            {"id": 2, "name": "Verified", "description": "PAN Verification"},
+            {"id": 3, "name": "Full", "description": "Bank + Video KYC"},
+            {"id": 4, "name": "EDD", "description": "Income + AML/PEP Check"},
+        ]
+    })
+
+
+@app.post("/api/workflow/start")
+@limiter.limit("10/minute")
+async def start_workflow(request: Request):
+    """Start a staged verification workflow."""
+    global kyc_graph
+    import json
+    
+    if not KYC_WORKFLOW_AVAILABLE:
+        raise HTTPException(status_code=503, detail="KYC Workflow not available")
+    
+    try:
+        data = await request.json()
+        user_id = data.get("user_id", "unknown")
+        target_level = data.get("target_level", 1)
+        level_data = data.get("data", {})
+        
+        # Build graph if not already built
+        if kyc_graph is None:
+            logger.info("Compiling KYC workflow graph...")
+            kyc_graph = build_staged_graph()
+            logger.info("KYC workflow graph compiled")
+        
+        # Prepare initial state
+        initial_state = {
+            "request_data": {
+                "user_id": user_id,
+                "target_level": target_level,
+                "data": level_data
+            },
+            "user_profile": {},
+            "verification_log": [],
+            "error_message": None
+        }
+        
+        # Run the workflow (non-streaming for simplicity)
+        logger.info(f"Starting workflow for user {user_id}, target level {target_level}")
+        
+        final_state = None
+        logs = []
+        
+        for chunk in kyc_graph.stream(initial_state, {"recursion_limit": 25}):
+            # Collect logs
+            for key, value in chunk.items():
+                if isinstance(value, dict) and "verification_log" in value:
+                    logs.extend(value["verification_log"])
+                if key == "__end__":
+                    final_state = value
+        
+        # Return result
+        if final_state and final_state.get("error_message"):
+            return JSONResponse({
+                "success": False,
+                "error": final_state["error_message"],
+                "logs": logs,
+                "user_profile": final_state.get("user_profile", {})
+            })
+        
+        return JSONResponse({
+            "success": True,
+            "logs": logs,
+            "user_profile": final_state.get("user_profile", {}) if final_state else {},
+            "message": "Verification complete"
+        })
+        
+    except Exception as e:
+        logger.error(f"Workflow error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # =====================================================

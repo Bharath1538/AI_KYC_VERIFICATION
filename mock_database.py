@@ -32,6 +32,15 @@ class AadhaarRecord:
     is_active: bool = True
 
 
+@dataclass
+class APIKeyRecord:
+    """B2B API Key record."""
+    api_key: str
+    company_name: str
+    tier: str = "free" # "free", "basic", "premium"
+    is_active: bool = True
+
+
 # ============================================
 # MOCK DATABASE - Sample Aadhaar Records
 # ============================================
@@ -78,6 +87,22 @@ MOCK_AADHAAR_DATABASE: Dict[str, AadhaarRecord] = {
         gender="Female",
         address="Bangalore, India",
         phone="9876543214"
+    ),
+}
+
+# ============================================
+# MOCK DATABASE - Sample API Keys
+# ============================================
+MOCK_API_KEYS: Dict[str, APIKeyRecord] = {
+    "sk_test_1234567890abcdef": APIKeyRecord(
+        api_key="sk_test_1234567890abcdef",
+        company_name="Test Company Inc.",
+        tier="premium"
+    ),
+    "sk_test_free_tier_key_xyz": APIKeyRecord(
+        api_key="sk_test_free_tier_key_xyz",
+        company_name="Startup Ltd.",
+        tier="free"
     ),
 }
 
@@ -211,7 +236,87 @@ def verify_aadhaar(extracted_data: Dict[str, Any]) -> Dict[str, Any]:
             "dob": db_record.dob,
             "gender": db_record.gender,
             "aadhaar_masked": f"XXXX XXXX {normalized_aadhaar[-4:]}"
-        }
+        },
+        "verified": status == VerificationStatus.VERIFIED
     }
     
     return result
+
+
+# =============================================================================
+# Additional Helper Functions for KYC Workflow
+# =============================================================================
+
+def get_user_by_aadhaar(aadhaar_or_user_id: str) -> Optional[Dict[str, Any]]:
+    """Get user profile by Aadhaar number or user ID."""
+    normalized = normalize_aadhaar(aadhaar_or_user_id)
+    
+    if normalized in MOCK_AADHAAR_DATABASE:
+        record = MOCK_AADHAAR_DATABASE[normalized]
+        return {
+            "user_id": normalized,
+            "aadhaar": normalized,
+            "full_name": record.name,
+            "dob": record.dob,
+            "kyc_level": -1,  # New user starts at -1
+            "verified_data": {}
+        }
+    
+    # Return a new user profile
+    return {
+        "user_id": aadhaar_or_user_id,
+        "kyc_level": -1,
+        "verified_data": {},
+        "full_name": None,
+        "dob": None
+    }
+
+
+# Mock PAN database
+MOCK_PAN_DATABASE = {
+    "ABCDE1234F": {"name": "Adithya Vardan M", "dob": "20/10/2004", "status": "Active"},
+    "FGHIJ5678K": {"name": "Priya Sharma", "dob": "25/12/1995", "status": "Active"},
+    "LMNOP9012Q": {"name": "Rajesh Kumar", "dob": "15/08/1990", "status": "Active"},
+    "QRSTU3456V": {"name": "Kanika Manocha", "dob": "11/09/1993", "status": "Active"},
+}
+
+
+def verify_pan(pan_number: str) -> Dict[str, Any]:
+    """Verify PAN number against mock database."""
+    pan_number = pan_number.upper().strip() if pan_number else ""
+    
+    if pan_number in MOCK_PAN_DATABASE:
+        record = MOCK_PAN_DATABASE[pan_number]
+        return {
+            "verified": True,
+            "name": record["name"],
+            "dob": record["dob"],
+            "status": record["status"]
+        }
+    
+    # Check format (basic validation)
+    if len(pan_number) == 10 and pan_number[:5].isalpha() and pan_number[5:9].isdigit() and pan_number[9].isalpha():
+        return {
+            "verified": True,
+            "name": None,
+            "dob": None,
+            "status": "Active"
+        }
+    
+    return {"verified": False, "message": "PAN not found or invalid format"}
+
+
+def save_verification_result(profile: Dict[str, Any]) -> bool:
+    """Save user verification result (in-memory for demo)."""
+    print(f"Saving verification result for user: {profile.get('user_id')}")
+    print(f"  KYC Level: {profile.get('kyc_level')}")
+    print(f"  Verified Data: {profile.get('verified_data')}")
+    return True
+
+
+def validate_api_key(api_key: str) -> Optional[APIKeyRecord]:
+    """Validate an API key against the mock database."""
+    if not api_key:
+        return None
+    return MOCK_API_KEYS.get(api_key)
+

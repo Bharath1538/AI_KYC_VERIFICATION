@@ -162,16 +162,29 @@ def run_level_1_aadhaar_verify(state: StagedVerificationState) -> dict:
 
 def run_level_2_pan_verify(state: StagedVerificationState) -> dict:
     """Level 2: PAN verification."""
+    from fuzzywuzzy import fuzz
+    
     try:
         data = state['request_data']['data']['level2']
         profile = state['user_profile']
+
+        # Ensure names match between Aadhaar (L1) and PAN (L2)
+        expected_name = profile.get('full_name', '').lower()
+        provided_name = data.get('full_name', '').lower()
+        
+        if expected_name and provided_name:
+            name_similarity = fuzz.token_sort_ratio(expected_name, provided_name)
+            if name_similarity < 80:
+                msg = f"❌ Level 2 Failed. PAN name '{provided_name}' does not match Aadhaar name '{expected_name}' (Similarity: {name_similarity}%)."
+                print(msg)
+                return {"error_message": msg, "verification_log": [msg]}
 
         pan_res = verify_pan.invoke({"pan_data": data})
 
         if pan_res['status'] == "Verified":
             profile['kyc_level'] = 2
             profile['verified_data']['pan'] = data.get('pan_number', '')
-            msg = "✅ Level 2 (Verified) VERIFIED - PAN confirmed."
+            msg = f"✅ Level 2 (Verified) VERIFIED - PAN confirmed for {provided_name.title()}."
             print(msg)
             return {"user_profile": profile, "verification_log": [msg]}
         else:
@@ -266,6 +279,14 @@ def verification_failed(state: StagedVerificationState) -> dict:
     
     msg = f"🚫 Verification FAILED. Error: {error_msg}"
     print(msg)
+    
+    try:
+        if profile and profile.get("user_id"):
+            profile["verification_status"] = "failed"
+            profile["failure_reason"] = error_msg
+            db.save_verification_result(profile)
+    except Exception as e:
+        print(f"Failed to save failed profile to DB: {e}")
     
     return {"verification_log": [msg]}
 

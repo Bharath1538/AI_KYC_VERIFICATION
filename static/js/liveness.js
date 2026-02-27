@@ -35,48 +35,106 @@ document.addEventListener('DOMContentLoaded', () => {
     const REQUIRED_DETECTIONS = 5;
 
     const challenges = [
-        { step: 1, title: 'Face Detection', desc: 'Position your face in the oval', icon: 'scan-face' },
-        { step: 2, title: 'Hold Still', desc: 'Keep your face steady', icon: 'eye' },
-        { step: 3, title: 'Look at Camera', desc: 'Look directly at the camera', icon: 'focus' },
-        { step: 4, title: 'Capture', desc: 'Capturing your photo...', icon: 'camera' }
+        { step: 1, title: 'Face Detection', desc: 'Position your face in the oval', icon: 'scan-face', type: 'face' },
+        { step: 2, title: 'Blink Detection', desc: 'Blink your eyes naturally', icon: 'eye', type: 'blink' },
+        { step: 3, title: 'Smile Detection', desc: 'Give a natural smile', icon: 'smile', type: 'smile' },
+        { step: 4, title: 'Head Turn', desc: 'Slowly turn your head left then right', icon: 'move', type: 'turn' }
     ];
 
-    // Face Detection using skin-tone detection
+    // Face Detection using skin-tone and motion detection
     async function detectFace() {
-        if (!video.videoWidth) return false;
+        if (!video.videoWidth) return { hasFace: false, motion: 0 };
 
         const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        canvas.width = 160;
+        canvas.height = 120;
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0);
 
-        // Check center region for face (skin tones)
-        const centerX = canvas.width * 0.3;
-        const centerY = canvas.height * 0.2;
-        const regionW = canvas.width * 0.4;
-        const regionH = canvas.height * 0.5;
+        // Calculate crop to match object-fit: cover for 4:3 container
+        const vidW = video.videoWidth;
+        const vidH = video.videoHeight;
+        let cropW = vidW;
+        let cropH = vidH;
+        let cropX = 0;
+        let cropY = 0;
 
-        const imageData = ctx.getImageData(centerX, centerY, regionW, regionH);
+        if (vidW / vidH > 4 / 3) {
+            cropW = vidH * (4 / 3);
+            cropX = (vidW - cropW) / 2;
+        } else {
+            cropH = vidW * (3 / 4);
+            cropY = (vidH - cropH) / 2;
+        }
+
+        // Mirror to match the video
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
+
+        // Define Oval Region (Center)
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radiusX = canvas.width * 0.3;
+        const radiusY = canvas.height * 0.4;
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
 
-        let skinPixels = 0;
-        const totalPixels = data.length / 4;
+        let edgesInOval = 0;
+        let totalOval = 0;
+        let diffPixels = 0;
 
-        for (let i = 0; i < data.length; i += 4) {
-            const r = data[i], g = data[i + 1], b = data[i + 2];
+        if (!window.prevFaceData) {
+            window.prevFaceData = new Uint8ClampedArray(data.length);
+        }
 
-            // Skin tone detection (works for various skin tones)
-            if (r > 60 && g > 40 && b > 20 &&
-                r > g && r > b &&
-                Math.abs(r - g) > 15 && r - b > 15) {
-                skinPixels++;
+        for (let y = 1; y < canvas.height - 1; y += 2) {
+            for (let x = 1; x < canvas.width - 1; x += 2) {
+                const i = (y * canvas.width + x) * 4;
+
+                // Math to check if point is inside ellipse
+                const dx = (x - centerX) / radiusX;
+                const dy = (y - centerY) / radiusY;
+                const inOval = (dx * dx + dy * dy) <= 1;
+
+                if (inOval) {
+                    totalOval++;
+
+                    // Simple brightness calculation (luminosity)
+                    const r = data[i], g = data[i + 1], b = data[i + 2];
+                    const brightness = (r + g + b) / 3;
+
+                    // Simple edge detection: compare to pixel to the left to find facial features
+                    const leftI = (y * canvas.width + (x - 1)) * 4;
+                    const leftR = data[leftI], leftG = data[leftI + 1], leftB = data[leftI + 2];
+                    const leftBrightness = (leftR + leftG + leftB) / 3;
+
+                    // If there's a sharp contrast in the oval (eyes, nose, mouth edges)
+                    if (Math.abs(brightness - leftBrightness) > 10) {
+                        edgesInOval++;
+                    }
+
+                    // Motion detection in oval
+                    const prevR = window.prevFaceData[i];
+                    if (Math.abs(r - prevR) > 15) {
+                        diffPixels++;
+                    }
+                }
+
+                window.prevFaceData[i] = data[i];
             }
         }
 
-        const skinRatio = skinPixels / totalPixels;
-        console.log(`Skin ratio: ${(skinRatio * 100).toFixed(1)}%`);
-        return skinRatio > 0.12;
+        const edgeRatio = edgesInOval / Math.max(1, totalOval);
+        const motionRatio = diffPixels / Math.max(1, totalOval);
+
+        // Face is present if there is sufficient texture/edges inside the oval (i.e., not a blank wall)
+        const hasFace = (edgeRatio > 0.05);
+
+        return {
+            hasFace: hasFace,
+            motion: motionRatio
+        };
     }
 
     async function startCamera() {
@@ -129,10 +187,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (success) {
                 updateStepStatus(challenge.step, 'complete');
-                await sleep(300);
+                await sleep(500); // Give user a moment to rest before next step
             } else {
                 updateStepStatus(challenge.step, 'failed');
-                showFailure('No face detected. Position your face in the oval.');
+                showFailure('Verification timed out. Please follow the instructions and stay in the oval.');
                 return;
             }
         }
@@ -145,33 +203,63 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Promise((resolve) => {
             consecutiveDetections = 0;
             const startTime = Date.now();
-            const maxDuration = 8000;
+            let hasCompletedAction = false;
 
             const checkInterval = setInterval(async () => {
                 const elapsed = Date.now() - startTime;
-                const detected = await detectFace();
+                const { hasFace, motion } = await detectFace();
 
-                if (detected) {
-                    consecutiveDetections++;
-                    faceGuide.style.opacity = '1';
-                } else {
+                let progressVal = 0;
+
+                // Stop if we don't detect a face
+                if (!hasFace) {
                     consecutiveDetections = Math.max(0, consecutiveDetections - 1);
-                    faceGuide.style.opacity = '0.5';
+                    guideText.textContent = "Please place your face inside the oval!";
+                    guideText.style.color = "#ef4444";
+                    faceGuide.style.opacity = '0.3';
+                } else {
+                    guideText.textContent = challenge.desc;
+                    guideText.style.color = "var(--text-primary)";
+                    faceGuide.style.opacity = '1';
+
+                    if (challenge.type === 'face') {
+                        consecutiveDetections++;
+                        progressVal = (consecutiveDetections / 10) * 100;
+                        if (consecutiveDetections >= 10) hasCompletedAction = true;
+                    }
+                    else if (challenge.type === 'blink') {
+                        // Blink causes a sharp spike in motion
+                        if (motion > 0.03 && motion < 0.15) consecutiveDetections++;
+                        progressVal = (consecutiveDetections / 3) * 100;
+                        if (consecutiveDetections >= 3) hasCompletedAction = true;
+                    }
+                    else if (challenge.type === 'smile') {
+                        // Smile causes slight motion that settles quickly
+                        if (motion > 0.01 && motion < 0.1) consecutiveDetections++;
+                        progressVal = (consecutiveDetections / 5) * 100;
+                        if (consecutiveDetections >= 5) hasCompletedAction = true;
+                    }
+                    else if (challenge.type === 'turn') {
+                        // Head turn causes massive, sustained motion
+                        if (motion > 0.12) consecutiveDetections++;
+                        progressVal = (consecutiveDetections / 4) * 100;
+                        if (consecutiveDetections >= 4) hasCompletedAction = true;
+                    }
                 }
 
-                const progress = Math.min((consecutiveDetections / REQUIRED_DETECTIONS) * 100, 100);
-                setProgress(progress);
+                setProgress(Math.min(Math.max(progressVal, 0), 100));
 
-                if (consecutiveDetections >= REQUIRED_DETECTIONS) {
+                if (hasCompletedAction) {
                     clearInterval(checkInterval);
                     resolve(true);
                 }
 
-                if (elapsed > maxDuration) {
+                // 15 seconds max duration per step to be generous
+                if (elapsed > 15000) {
                     clearInterval(checkInterval);
-                    resolve(consecutiveDetections >= 2);
+                    resolve(false);
                 }
-            }, 200);
+            }, 150);
         });
     }
 
@@ -184,6 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
         challengeTitle.textContent = challenge.title;
         challengeDesc.textContent = challenge.desc;
         guideText.textContent = challenge.desc;
+        guideText.style.color = "var(--text-primary)";
         lucide.createIcons();
         progressRing.classList.remove('hidden');
         setProgress(0);

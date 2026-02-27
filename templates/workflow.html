@@ -42,6 +42,19 @@
                 <h3><i data-lucide="clipboard-list"></i> Verification Details</h3>
             </div>
             <div class="card-body">
+
+                <!-- Demo Profiles -->
+                <div style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button type="button" onclick="loadDemoProfile('pass')" class="btn"
+                        style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; font-size: 0.75rem; padding: 0.5rem;">
+                        <i data-lucide="check-circle"></i> Demo: Valid User
+                    </button>
+                    <button type="button" onclick="loadDemoProfile('fail')" class="btn"
+                        style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; font-size: 0.75rem; padding: 0.5rem;">
+                        <i data-lucide="x-circle"></i> Demo: Invalid User (Fails Check)
+                    </button>
+                </div>
+
                 <!-- User ID -->
                 <div class="form-group">
                     <label for="userId">User ID / Aadhaar Number</label>
@@ -443,6 +456,33 @@
             document.getElementById('form-level-4').classList.toggle('hidden', target < 4);
         }
 
+        function loadDemoProfile(type) {
+            document.getElementById('targetLevel').value = "4";
+            updateFormVisibility();
+
+            if (type === 'pass') {
+                document.getElementById('userId').value = "6106 2339 9374";
+                document.getElementById('l0-phone').value = "+919876543211";
+                document.getElementById('l1-aadhaar-data').value = '{\n  "aadhaar_number": "6106 2339 9374",\n  "full_name": "Adithya Vardan M",\n  "dob": "20/10/2004"\n}';
+                document.getElementById('l2-pan-data').value = '{\n  "pan_number": "ABCDE1234F",\n  "full_name": "Adithya Vardan M"\n}';
+                document.getElementById('l3-bank').value = "123456789";
+                document.getElementById('l3-ifsc').value = "HDFC0001234";
+                document.getElementById('l3-address').value = '{"pincode": "500001"}';
+                document.getElementById('l4-income').value = '{\n  "doc_type": "ITR",\n  "annual_income": 950000\n}';
+            } else if (type === 'fail') {
+                document.getElementById('userId').value = "8016 2213 9063";
+                document.getElementById('l0-phone').value = "+919876543212";
+                document.getElementById('l1-aadhaar-data').value = '{\n  "aadhaar_number": "8016 2213 9063",\n  "full_name": "Sajan A",\n  "dob": "03/03/2005"\n}';
+                document.getElementById('l2-pan-data').value = '{\n  "pan_number": "XYZ123456G",\n  "full_name": "Wrong Name Mismatch"\n}';
+                document.getElementById('l3-bank').value = "999999999";
+                document.getElementById('l3-ifsc').value = "ICIC0001234";
+                document.getElementById('l3-address').value = '{"pincode": "600001"}';
+                document.getElementById('l4-income').value = '{\n  "doc_type": "ITR",\n  "annual_income": 200000\n}';
+            }
+            lucide.createIcons();
+        }
+        window.loadDemoProfile = loadDemoProfile; // Make function globally accessible
+
         function addLog(message, type = 'info') {
             const placeholder = logContainer.querySelector('.log-placeholder');
             if (placeholder) placeholder.remove();
@@ -524,15 +564,16 @@
 
                 // Display result
                 resultCard.classList.remove('hidden');
+                const profile = result.user_profile || {};
+
                 if (result.success) {
-                    const profile = result.user_profile || {};
                     resultContent.innerHTML = `
-                    <div class="result-success">
-                        <h4>✅ Verification Successful!</h4>
-                        <p>User is now at Level ${profile.kyc_level || 'N/A'}</p>
-                        <pre style="text-align:left;margin-top:1rem;font-size:0.75rem;">${JSON.stringify(profile.verified_data || {}, null, 2)}</pre>
-                    </div>
-                `;
+                        <div class="result-success">
+                            <h4>✅ Verification Successful!</h4>
+                            <p>User is now at Level ${profile.kyc_level !== undefined ? profile.kyc_level : 'N/A'}</p>
+                            <pre style="text-align:left;margin-top:1rem;font-size:0.75rem;">${JSON.stringify(profile.verified_data || {}, null, 2)}</pre>
+                        </div>
+                    `;
 
                     // Update level nodes
                     for (let i = 0; i <= (profile.kyc_level || 0); i++) {
@@ -540,11 +581,13 @@
                     }
                 } else {
                     resultContent.innerHTML = `
-                    <div class="result-failed">
-                        <h4>❌ Verification Failed</h4>
-                        <p>${result.error || 'Unknown error'}</p>
-                    </div>
-                `;
+                        <div class="result-failed" style="color: var(--accent-red); padding: 1rem; border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; background: rgba(239, 68, 68, 0.05);">
+                            <h4 style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <i data-lucide="x-circle"></i> Verification Failed
+                            </h4>
+                            <p>${result.error || result.message || 'Unknown error occurred during verification.'}</p>
+                        </div>
+                    `;
                 }
 
             } catch (err) {

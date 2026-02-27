@@ -106,6 +106,15 @@ MOCK_API_KEYS: Dict[str, APIKeyRecord] = {
     ),
 }
 
+# ============================================
+# MOCK DATABASE - Verified KYC Records 
+# ============================================
+# This holds the completed onboarding profiles injected by the workflow
+MOCK_VERIFIED_RECORDS: Dict[str, Any] = {}
+
+def get_verification_status(user_id: str) -> Optional[Dict[str, Any]]:
+    """Retrieve the stored KYC status for a user."""
+    return MOCK_VERIFIED_RECORDS.get(user_id)
 
 def normalize_aadhaar(aadhaar: str) -> str:
     """Normalize Aadhaar number format (remove extra spaces, standardize)."""
@@ -308,7 +317,13 @@ def verify_pan(pan_number: str) -> Dict[str, Any]:
 
 def save_verification_result(profile: Dict[str, Any]) -> bool:
     """Save user verification result (in-memory for demo)."""
-    print(f"Saving verification result for user: {profile.get('user_id')}")
+    user_id = profile.get('user_id', '')
+    if user_id:
+        # Save a copy to the mock global database
+        import copy
+        MOCK_VERIFIED_RECORDS[user_id] = copy.deepcopy(profile)
+        
+    print(f"Saving verification result for user: {user_id}")
     print(f"  KYC Level: {profile.get('kyc_level')}")
     print(f"  Verified Data: {profile.get('verified_data')}")
     return True

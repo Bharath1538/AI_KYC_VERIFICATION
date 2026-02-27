@@ -51,7 +51,7 @@ except ImportError as e:
 
 # Import mock database for verification
 try:
-    from mock_database import verify_aadhaar, MOCK_AADHAAR_DATABASE, validate_api_key
+    from mock_database import verify_aadhaar, MOCK_AADHAAR_DATABASE, validate_api_key, APIKeyRecord
     DATABASE_AVAILABLE = True
     logger.info(f"Mock database loaded with {len(MOCK_AADHAAR_DATABASE)} records")
 except ImportError as e:
@@ -653,6 +653,48 @@ async def health_check(request: Request):
 
 
 # =====================================================
+# B2B Verification Status API
+# =====================================================
+
+@app.get("/api/v1/kyc/status/{user_id}")
+@limiter.limit("60/minute")
+async def get_verification_status_api(
+    request: Request,
+    user_id: str,
+    api_key_record: APIKeyRecord = Depends(get_api_key)
+):
+    """
+    Retrieve the current KYC verification status and level of a given user.
+    Requires a valid B2B API Key.
+    """
+    from mock_database import get_verification_status
+    import json
+    
+    status = get_verification_status(user_id)
+    if not status:
+        return JSONResponse(
+            status_code=404,
+            content={
+                "success": False,
+                "error": "User verification record not found",
+                "user_id": user_id
+            }
+        )
+        
+    is_failed = status.get("verification_status") == "failed"
+        
+    return JSONResponse({
+        "success": not is_failed,
+        "company": api_key_record.company_name,
+        "user_id": user_id,
+        "kyc_level": status.get("kyc_level"),
+        "full_name": status.get("full_name"),
+        "verified_data": status.get("verified_data", {}),
+        "error": status.get("failure_reason") if is_failed else None,
+        "timestamp": "2026-02-27T00:00:00Z" # Mock timestamp
+    })
+
+# =====================================================
 # Staged KYC Workflow Routes
 # =====================================================
 
@@ -709,19 +751,23 @@ async def start_workflow(request: Request):
         # Run the workflow (non-streaming for simplicity)
         logger.info(f"Starting workflow for user {user_id}, target level {target_level}")
         
-        final_state = None
+        final_state = initial_state.copy()
+        final_state["user_profile"] = {}
         logs = []
         
-        for chunk in kyc_graph.stream(initial_state, {"recursion_limit": 25}):
-            # Collect logs
-            for key, value in chunk.items():
-                if isinstance(value, dict) and "verification_log" in value:
-                    logs.extend(value["verification_log"])
-                if key == "__end__":
-                    final_state = value
+        for event in kyc_graph.stream(initial_state, {"recursion_limit": 25}):
+            # Different nodes return different keys, aggregate them
+            for node_name, node_state in event.items():
+                if isinstance(node_state, dict):
+                    if "verification_log" in node_state:
+                        logs.extend(node_state["verification_log"])
+                    if "user_profile" in node_state:
+                        final_state["user_profile"] = node_state["user_profile"]
+                    if "error_message" in node_state:
+                        final_state["error_message"] = node_state["error_message"]
         
-        # Return result
-        if final_state and final_state.get("error_message"):
+        # Return properly structured JSON indicating success vs failure
+        if final_state.get("error_message"):
             return JSONResponse({
                 "success": False,
                 "error": final_state["error_message"],
@@ -732,7 +778,7 @@ async def start_workflow(request: Request):
         return JSONResponse({
             "success": True,
             "logs": logs,
-            "user_profile": final_state.get("user_profile", {}) if final_state else {},
+            "user_profile": final_state.get("user_profile", {}),
             "message": "Verification complete"
         })
         

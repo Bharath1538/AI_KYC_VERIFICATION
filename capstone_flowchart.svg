@@ -1,0 +1,484 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1632pt" height="1162pt" viewBox="0.00 0.00 1632.00 1162.00">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 1157.88)">
+<title>StagedKYCArchitecture</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-1157.88 1628.47,-1157.88 1628.47,4 -4,4"/>
+<text xml:space="preserve" text-anchor="middle" x="812.23" y="-1137.28" font-family="Arial" font-size="14.00">Staged KYC Agent - Full System Architecture</text>
+<g id="clust1" class="cluster">
+<title>cluster_frontend</title>
+<polygon fill="#eeffff" stroke="black" points="1385,-884.48 1385,-961.68 1521,-961.68 1521,-884.48 1385,-884.48"/>
+<text xml:space="preserve" text-anchor="middle" x="1453" y="-945.08" font-family="Arial" font-size="14.00">Frontend (Browser)</text>
+</g>
+<g id="clust2" class="cluster">
+<title>cluster_backend</title>
+<polygon fill="#eeeeff" stroke="black" points="953,-790.88 953,-961.68 1377,-961.68 1377,-790.88 953,-790.88"/>
+<text xml:space="preserve" text-anchor="middle" x="1165" y="-945.08" font-family="Arial" font-size="14.00">Backend Server (FastAPI)</text>
+</g>
+<g id="clust4" class="cluster">
+<title>cluster_agent</title>
+<polygon fill="#ffeeff" stroke="black" stroke-dasharray="5,2" points="8,-424.05 8,-762.08 1159,-762.08 1159,-424.05 8,-424.05"/>
+<text xml:space="preserve" text-anchor="middle" x="583.5" y="-745.48" font-family="Arial" font-size="14.00">Agentic Workflow (LangGraph)</text>
+</g>
+<g id="clust6" class="cluster">
+<title>cluster_tools</title>
+<polygon fill="#ffffee" stroke="black" points="392,-235.25 392,-395.25 912,-395.25 912,-235.25 392,-235.25"/>
+<text xml:space="preserve" text-anchor="middle" x="652" y="-378.65" font-family="Arial" font-size="14.00">Verification Tools</text>
+</g>
+<g id="clust8" class="cluster">
+<title>cluster_services</title>
+<polygon fill="#ffddee" stroke="black" points="404,-122.05 404,-199.25 530,-199.25 530,-122.05 404,-122.05"/>
+<text xml:space="preserve" text-anchor="middle" x="467" y="-182.65" font-family="Arial" font-size="14.00">External Services</text>
+</g>
+<g id="clust9" class="cluster">
+<title>cluster_database</title>
+<polygon fill="#eeeeee" stroke="black" points="812,-8 812,-206.45 1390,-206.45 1390,-8 812,-8"/>
+<text xml:space="preserve" text-anchor="middle" x="1101" y="-189.85" font-family="Arial" font-size="14.00">Database (MongoDB Atlas)</text>
+</g>
+<!-- User -->
+<g id="node1" class="node">
+<title>User</title>
+<polygon fill="#ccddee" stroke="black" points="1500.29,-1045.88 1399.71,-1045.88 1399.71,-998.48 1500.29,-998.48 1500.29,-1045.88"/>
+<text xml:space="preserve" text-anchor="start" x="1448.47" y="-1029.78" font-family="Arial" font-size="11.00"> </text>
+<text xml:space="preserve" text-anchor="start" x="1425.85" y="-1018.78" font-family="Arial" font-weight="bold" font-size="11.00">End User</text>
+<text xml:space="preserve" text-anchor="start" x="1406.91" y="-1007.78" font-family="Arial" font-size="11.00">(Demo Operator) </text>
+</g>
+<!-- FE -->
+<g id="node3" class="node">
+<title>FE</title>
+<polygon fill="#eeffff" stroke="none" points="1509.1,-928.88 1392.9,-928.88 1392.9,-892.48 1509.1,-892.48 1509.1,-928.88"/>
+<text xml:space="preserve" text-anchor="start" x="1423.5" y="-912.78" font-family="Arial" font-weight="bold" font-size="11.00">index.html</text>
+<text xml:space="preserve" text-anchor="start" x="1400.1" y="-901.78" font-family="Arial" font-size="11.00">Vanilla JS + Tailwind</text>
+</g>
+<!-- User&#45;&gt;FE -->
+<g id="edge26" class="edge">
+<title>User-&gt;FE</title>
+<path fill="none" stroke="black" d="M1460.13,-998.21C1466.95,-979.65 1466.47,-968.6 1458.92,-939.57"/>
+<polygon fill="black" stroke="black" points="1462.32,-938.72 1456.35,-929.97 1455.55,-940.53 1462.32,-938.72"/>
+<text xml:space="preserve" text-anchor="middle" x="1438.76" y="-972.38" font-family="Arial" font-size="9.00"> 1. Selects User</text>
+</g>
+<!-- User&#45;&gt;FE -->
+<g id="edge28" class="edge">
+<title>User-&gt;FE</title>
+<path fill="none" stroke="black" d="M1460.13,-998.21C1466.95,-979.65 1466.47,-968.6 1458.92,-939.57"/>
+<polygon fill="black" stroke="black" points="1462.32,-938.72 1456.35,-929.97 1455.55,-940.53 1462.32,-938.72"/>
+<text xml:space="preserve" text-anchor="middle" x="1559.23" y="-972.38" font-family="Arial" font-size="9.00"> 3. Pastes JSON &amp; Clicks 'Verify'</text>
+</g>
+<!-- OCR -->
+<g id="node2" class="node">
+<title>OCR</title>
+<polygon fill="#ccddee" stroke="black" points="1523.53,-1129.08 1376.47,-1129.08 1376.47,-1092.68 1523.53,-1092.68 1523.53,-1129.08"/>
+<text xml:space="preserve" text-anchor="start" x="1383.67" y="-1112.98" font-family="Arial" font-weight="bold" font-size="11.00">External OCR Subsystem</text>
+<text xml:space="preserve" text-anchor="start" x="1403.54" y="-1101.98" font-family="Arial" font-size="11.00">(using Surya OCR)</text>
+</g>
+<!-- OCR&#45;&gt;User -->
+<g id="edge27" class="edge">
+<title>OCR-&gt;User</title>
+<path fill="none" stroke="black" d="M1457.43,-1092.32C1461.4,-1080.72 1461.79,-1072.65 1458.6,-1057"/>
+<polygon fill="black" stroke="black" points="1462.1,-1056.64 1456.48,-1047.66 1455.28,-1058.19 1462.1,-1056.64"/>
+<text xml:space="preserve" text-anchor="middle" x="1497.77" y="-1066.58" font-family="Arial" font-size="9.00"> 2. Provides JSON Data</text>
+</g>
+<!-- API_Users -->
+<g id="node5" class="node">
+<title>API_Users</title>
+<path fill="#ffffff" stroke="black" d="M1356.54,-834.88C1356.54,-834.88 1285.46,-834.88 1285.46,-834.88 1279.46,-834.88 1273.46,-828.88 1273.46,-822.88 1273.46,-822.88 1273.46,-810.88 1273.46,-810.88 1273.46,-804.88 1279.46,-798.88 1285.46,-798.88 1285.46,-798.88 1356.54,-798.88 1356.54,-798.88 1362.54,-798.88 1368.54,-804.88 1368.54,-810.88 1368.54,-810.88 1368.54,-822.88 1368.54,-822.88 1368.54,-828.88 1362.54,-834.88 1356.54,-834.88"/>
+<text xml:space="preserve" text-anchor="middle" x="1321" y="-813.58" font-family="Arial" font-size="11.00">/api/users (GET)</text>
+</g>
+<!-- FE&#45;&gt;API_Users -->
+<g id="edge29" class="edge">
+<title>FE-&gt;API_Users</title>
+<path fill="none" stroke="black" d="M1430.81,-892.52C1414.38,-878.27 1400.7,-868.69 1358.68,-841.32"/>
+<polygon fill="black" stroke="black" points="1360.83,-838.55 1350.54,-836.03 1357.02,-844.42 1360.83,-838.55"/>
+<text xml:space="preserve" text-anchor="middle" x="1492.26" y="-860.98" font-family="Arial" font-size="9.00"> 4. Fetches User List</text>
+</g>
+<!-- API_User -->
+<g id="node6" class="node">
+<title>API_User</title>
+<path fill="#ffffff" stroke="black" d="M1243.27,-834.88C1243.27,-834.88 1158.73,-834.88 1158.73,-834.88 1152.73,-834.88 1146.73,-828.88 1146.73,-822.88 1146.73,-822.88 1146.73,-810.88 1146.73,-810.88 1146.73,-804.88 1152.73,-798.88 1158.73,-798.88 1158.73,-798.88 1243.27,-798.88 1243.27,-798.88 1249.27,-798.88 1255.27,-804.88 1255.27,-810.88 1255.27,-810.88 1255.27,-822.88 1255.27,-822.88 1255.27,-828.88 1249.27,-834.88 1243.27,-834.88"/>
+<text xml:space="preserve" text-anchor="middle" x="1201" y="-813.58" font-family="Arial" font-size="11.00">/api/user/{id} (GET)</text>
+</g>
+<!-- FE&#45;&gt;API_User -->
+<g id="edge30" class="edge">
+<title>FE-&gt;API_User</title>
+<path fill="none" stroke="black" d="M1393.18,-893.78C1362.73,-883.94 1332.19,-871.66 1255.76,-839.77"/>
+<polygon fill="black" stroke="black" points="1257.16,-836.56 1246.58,-835.94 1254.46,-843.02 1257.16,-836.56"/>
+<text xml:space="preserve" text-anchor="middle" x="1373.03" y="-860.98" font-family="Arial" font-size="9.00"> 5. Fetches Selected Profile</text>
+</g>
+<!-- API_Verify -->
+<g id="node7" class="node">
+<title>API_Verify</title>
+<path fill="#ffffff" stroke="black" d="M1117.22,-834.88C1117.22,-834.88 972.78,-834.88 972.78,-834.88 966.78,-834.88 960.78,-828.88 960.78,-822.88 960.78,-822.88 960.78,-810.88 960.78,-810.88 960.78,-804.88 966.78,-798.88 972.78,-798.88 972.78,-798.88 1117.22,-798.88 1117.22,-798.88 1123.22,-798.88 1129.22,-804.88 1129.22,-810.88 1129.22,-810.88 1129.22,-822.88 1129.22,-822.88 1129.22,-828.88 1123.22,-834.88 1117.22,-834.88"/>
+<text xml:space="preserve" text-anchor="start" x="967.98" y="-813.58" font-family="Arial" font-size="11.00">/api/verify-staged-stream (GET)</text>
+</g>
+<!-- FE&#45;&gt;API_Verify -->
+<g id="edge31" class="edge">
+<title>FE-&gt;API_Verify</title>
+<path fill="none" stroke="black" d="M1393.1,-908.94C1319.71,-905.44 1281.06,-894.85 1111.55,-838.91"/>
+<polygon fill="black" stroke="black" points="1112.76,-835.62 1102.16,-835.81 1110.56,-842.27 1112.76,-835.62"/>
+<text xml:space="preserve" text-anchor="start" x="1206.26" y="-866.38" font-family="Arial" font-size="9.00"> 6. Starts Verification</text>
+<text xml:space="preserve" text-anchor="start" x="1201" y="-855.58" font-family="Arial" font-size="9.00">(EventSource Request)</text>
+</g>
+<!-- API_Root -->
+<g id="node4" class="node">
+<title>API_Root</title>
+<path fill="#ffffff" stroke="black" d="M1200.06,-928.88C1200.06,-928.88 1139.94,-928.88 1139.94,-928.88 1133.94,-928.88 1127.94,-922.88 1127.94,-916.88 1127.94,-916.88 1127.94,-904.48 1127.94,-904.48 1127.94,-898.48 1133.94,-892.48 1139.94,-892.48 1139.94,-892.48 1200.06,-892.48 1200.06,-892.48 1206.06,-892.48 1212.06,-898.48 1212.06,-904.48 1212.06,-904.48 1212.06,-916.88 1212.06,-916.88 1212.06,-922.88 1206.06,-928.88 1200.06,-928.88"/>
+<text xml:space="preserve" text-anchor="start" x="1149.22" y="-912.78" font-family="Arial" font-weight="bold" font-size="11.00">main.py</text>
+<text xml:space="preserve" text-anchor="start" x="1135.14" y="-901.78" font-family="Arial" font-size="11.00">API Endpoints</text>
+</g>
+<!-- API_Root&#45;&gt;API_Users -->
+<!-- API_Root&#45;&gt;API_User -->
+<!-- API_Root&#45;&gt;API_Verify -->
+<!-- DB -->
+<g id="node24" class="node">
+<title>DB</title>
+<polygon fill="#ffffff" stroke="black" points="1137.9,-173.65 1024.1,-173.65 1024.1,-122.85 1137.9,-122.85 1137.9,-173.65"/>
+<text xml:space="preserve" text-anchor="start" x="1044.95" y="-150.35" font-family="Arial" font-weight="bold" font-size="11.00">mongo_db.py</text>
+<text xml:space="preserve" text-anchor="start" x="1038.5" y="-139.35" font-family="Arial" font-size="11.00">Connection Logic</text>
+</g>
+<!-- API_Users&#45;&gt;DB -->
+<g id="edge32" class="edge">
+<title>API_Users-&gt;DB</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1322,-798.45C1339.83,-469.68 1336.45,-451.93 1109.9,-182.56"/>
+<polygon fill="black" stroke="black" points="1112.88,-180.67 1103.76,-175.27 1107.52,-185.17 1112.88,-180.67"/>
+<text xml:space="preserve" text-anchor="middle" x="1315.51" y="-491.78" font-family="Arial" font-size="9.00"> reads</text>
+</g>
+<!-- API_User&#45;&gt;DB -->
+<g id="edge33" class="edge">
+<title>API_User-&gt;DB</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1204.67,-798.58C1270.89,-467.6 1270.6,-449.42 1103.2,-183.46"/>
+<polygon fill="black" stroke="black" points="1106.27,-181.77 1097.98,-175.17 1100.35,-185.5 1106.27,-181.77"/>
+<text xml:space="preserve" text-anchor="middle" x="1231.51" y="-491.78" font-family="Arial" font-size="9.00"> reads</text>
+</g>
+<!-- LG -->
+<g id="node8" class="node">
+<title>LG</title>
+<polygon fill="#ffffff" stroke="black" points="1108.45,-729.28 981.55,-729.28 981.55,-692.88 1108.45,-692.88 1108.45,-729.28"/>
+<text xml:space="preserve" text-anchor="start" x="988.75" y="-713.18" font-family="Arial" font-weight="bold" font-size="11.00">staged_kyc_graph.py</text>
+<text xml:space="preserve" text-anchor="start" x="1009.53" y="-702.18" font-family="Arial" font-size="11.00">Stateful Graph</text>
+</g>
+<!-- API_Verify&#45;&gt;LG -->
+<g id="edge34" class="edge">
+<title>API_Verify-&gt;LG</title>
+<path fill="none" stroke="black" d="M1052.5,-798.64C1059.68,-779.62 1059.75,-769.69 1052.7,-740.82"/>
+<polygon fill="black" stroke="black" points="1056.12,-740.08 1050.28,-731.24 1049.34,-741.79 1056.12,-740.08"/>
+<text xml:space="preserve" text-anchor="middle" x="1080.52" y="-772.78" font-family="Arial" font-size="9.00"> 7. Invokes Graph</text>
+</g>
+<!-- LG_Load -->
+<g id="node9" class="node">
+<title>LG_Load</title>
+<polygon fill="#ffffff" stroke="black" points="1100.51,-646.08 989.49,-646.08 989.49,-610.08 1100.51,-610.08 1100.51,-646.08"/>
+<text xml:space="preserve" text-anchor="middle" x="1045" y="-624.78" font-family="Arial" font-size="11.00">1. load_user_profile</text>
+</g>
+<!-- LG&#45;&gt;LG_Load -->
+<g id="edge4" class="edge">
+<title>LG-&gt;LG_Load</title>
+<path fill="none" stroke="black" d="M1052.76,-692.49C1057.47,-679.76 1057.91,-672.01 1054.1,-657.34"/>
+<polygon fill="black" stroke="black" points="1057.55,-656.66 1051.4,-648.02 1050.82,-658.6 1057.55,-656.66"/>
+<text xml:space="preserve" text-anchor="middle" x="1060.26" y="-666.78" font-family="Arial" font-size="9.00">invokes</text>
+</g>
+<!-- LG_Router -->
+<g id="node10" class="node">
+<title>LG_Router</title>
+<polygon fill="#ffffff" stroke="black" points="513,-573.08 427.05,-545.48 513,-517.88 598.95,-545.48 513,-573.08"/>
+<text xml:space="preserve" text-anchor="middle" x="513" y="-542.18" font-family="Arial" font-size="11.00">2. router_node</text>
+</g>
+<!-- LG_Load&#45;&gt;LG_Router -->
+<g id="edge5" class="edge">
+<title>LG_Load-&gt;LG_Router</title>
+<path fill="none" stroke="black" d="M989.23,-641.05C843.76,-673.66 809.61,-665.23 562.1,-565.34"/>
+<polygon fill="black" stroke="black" points="563.67,-562.2 553.09,-561.7 561.05,-568.69 563.67,-562.2"/>
+</g>
+<!-- LG_Load&#45;&gt;DB -->
+<g id="edge35" class="edge">
+<title>LG_Load-&gt;DB</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1051.36,-609.86C1139.28,-357.87 1144.19,-336.94 1093.28,-184.58"/>
+<polygon fill="black" stroke="black" points="1096.66,-183.67 1090.16,-175.3 1090.03,-185.9 1096.66,-183.67"/>
+<text xml:space="preserve" text-anchor="middle" x="1191.51" y="-405.95" font-family="Arial" font-size="9.00"> reads</text>
+</g>
+<!-- LG_L0 -->
+<g id="node11" class="node">
+<title>LG_L0</title>
+<polygon fill="#ffffff" stroke="black" points="454.52,-469.57 343.48,-469.57 343.48,-433.57 454.52,-433.57 454.52,-469.57"/>
+<text xml:space="preserve" text-anchor="middle" x="399" y="-448.27" font-family="Arial" font-size="11.00">L0: run_level_0_otp</text>
+</g>
+<!-- LG_Router&#45;&gt;LG_L0 -->
+<g id="edge6" class="edge">
+<title>LG_Router-&gt;LG_L0</title>
+<path fill="none" stroke="black" d="M483.44,-527.14C445.24,-503.27 431.28,-493.36 418.81,-478.65"/>
+<polygon fill="black" stroke="black" points="421.76,-476.74 412.83,-471.06 416.27,-481.08 421.76,-476.74"/>
+<text xml:space="preserve" text-anchor="middle" x="401.76" y="-491.78" font-family="Arial" font-size="9.00"> routes to</text>
+</g>
+<!-- LG_L1 -->
+<g id="node12" class="node">
+<title>LG_L1</title>
+<polygon fill="#ffffff" stroke="black" points="162.25,-469.57 15.75,-469.57 15.75,-433.57 162.25,-433.57 162.25,-469.57"/>
+<text xml:space="preserve" text-anchor="middle" x="89" y="-448.27" font-family="Arial" font-size="11.00">L1: run_level_1_pan_verify</text>
+</g>
+<!-- LG_Router&#45;&gt;LG_L1 -->
+<g id="edge7" class="edge">
+<title>LG_Router-&gt;LG_L1</title>
+<path fill="none" stroke="black" d="M458.98,-534.75C281.27,-499.41 228.71,-488.65 167.99,-472.94"/>
+<polygon fill="black" stroke="black" points="168.96,-469.58 158.4,-470.44 167.19,-476.35 168.96,-469.58"/>
+<text xml:space="preserve" text-anchor="middle" x="202.76" y="-491.78" font-family="Arial" font-size="9.00"> routes to</text>
+</g>
+<!-- LG_L2 -->
+<g id="node13" class="node">
+<title>LG_L2</title>
+<polygon fill="#ffffff" stroke="black" points="773.25,-469.57 604.75,-469.57 604.75,-433.57 773.25,-433.57 773.25,-469.57"/>
+<text xml:space="preserve" text-anchor="middle" x="689" y="-448.27" font-family="Arial" font-size="11.00">L2: run_level_2_aadhaar_verify</text>
+</g>
+<!-- LG_Router&#45;&gt;LG_L2 -->
+<g id="edge8" class="edge">
+<title>LG_Router-&gt;LG_L2</title>
+<path fill="none" stroke="black" d="M531.51,-523.33C554.9,-496.23 569.24,-485.63 608.82,-473.22"/>
+<polygon fill="black" stroke="black" points="609.43,-476.69 618,-470.45 607.41,-469.99 609.43,-476.69"/>
+<text xml:space="preserve" text-anchor="middle" x="730.76" y="-491.78" font-family="Arial" font-size="9.00"> routes to</text>
+</g>
+<!-- LG_L3 -->
+<g id="node14" class="node">
+<title>LG_L3</title>
+<polygon fill="#ffffff" stroke="black" points="325.33,-469.57 180.67,-469.57 180.67,-433.57 325.33,-433.57 325.33,-469.57"/>
+<text xml:space="preserve" text-anchor="middle" x="253" y="-448.27" font-family="Arial" font-size="11.00">L3: run_level_3_video_kyc</text>
+</g>
+<!-- LG_Router&#45;&gt;LG_L3 -->
+<g id="edge9" class="edge">
+<title>LG_Router-&gt;LG_L3</title>
+<path fill="none" stroke="black" d="M468.46,-531.86C367.61,-500.96 336.02,-490.69 300.76,-474.7"/>
+<polygon fill="black" stroke="black" points="302.57,-471.68 292.03,-470.65 299.63,-478.03 302.57,-471.68"/>
+<text xml:space="preserve" text-anchor="middle" x="340.76" y="-491.78" font-family="Arial" font-size="9.00"> routes to</text>
+</g>
+<!-- LG_L4 -->
+<g id="node15" class="node">
+<title>LG_L4</title>
+<polygon fill="#ffffff" stroke="black" points="587.05,-469.57 472.95,-469.57 472.95,-433.57 587.05,-433.57 587.05,-469.57"/>
+<text xml:space="preserve" text-anchor="middle" x="530" y="-448.27" font-family="Arial" font-size="11.00">L4: run_level_4_edd</text>
+</g>
+<!-- LG_Router&#45;&gt;LG_L4 -->
+<g id="edge10" class="edge">
+<title>LG_Router-&gt;LG_L4</title>
+<path fill="none" stroke="black" d="M508.26,-519.06C505.69,-501.62 506.56,-492.5 513.07,-479.55"/>
+<polygon fill="black" stroke="black" points="515.94,-481.58 517.76,-471.14 509.83,-478.17 515.94,-481.58"/>
+<text xml:space="preserve" text-anchor="middle" x="531.76" y="-491.78" font-family="Arial" font-size="9.00"> routes to</text>
+</g>
+<!-- LG_End -->
+<g id="node16" class="node">
+<title>LG_End</title>
+<ellipse fill="#ffffff" stroke="black" cx="892" cy="-451.57" rx="100.56" ry="19.52"/>
+<text xml:space="preserve" text-anchor="middle" x="892" y="-448.27" font-family="Arial" font-size="11.00">3. save_profile_and_finish</text>
+</g>
+<!-- LG_Router&#45;&gt;LG_End -->
+<g id="edge17" class="edge">
+<title>LG_Router-&gt;LG_End</title>
+<path fill="none" stroke="black" d="M538.76,-525.87C628.49,-458.02 655.84,-445.23 781.56,-447.69"/>
+<polygon fill="black" stroke="black" points="781.22,-451.18 791.3,-447.91 781.38,-444.18 781.22,-451.18"/>
+<text xml:space="preserve" text-anchor="middle" x="858.51" y="-491.78" font-family="Arial" font-size="9.00"> On Success</text>
+</g>
+<!-- LG_Fail -->
+<g id="node17" class="node">
+<title>LG_Fail</title>
+<ellipse fill="#ffeeee" stroke="black" cx="1081" cy="-451.57" rx="70.28" ry="19.52"/>
+<text xml:space="preserve" text-anchor="middle" x="1081" y="-448.27" font-family="Arial" font-size="11.00">verification_failed</text>
+</g>
+<!-- LG_Router&#45;&gt;LG_Fail -->
+<g id="edge16" class="edge">
+<title>LG_Router-&gt;LG_Fail</title>
+<path fill="none" stroke="black" d="M549.38,-529.17C816.35,-409.56 851.53,-398.45 1016.03,-436.11"/>
+<polygon fill="black" stroke="black" points="1015.05,-439.48 1025.58,-438.32 1016.63,-432.66 1015.05,-439.48"/>
+<text xml:space="preserve" text-anchor="middle" x="1012.5" y="-491.78" font-family="Arial" font-size="9.00"> On Error</text>
+</g>
+<!-- LG_L0&#45;&gt;LG_Router -->
+<g id="edge11" class="edge">
+<title>LG_L0-&gt;LG_Router</title>
+<path fill="none" stroke="black" d="M483.22,-527C445.14,-503.2 431.22,-493.3 418.76,-478.59"/>
+<polygon fill="black" stroke="black" points="421.71,-476.68 412.77,-470.99 416.21,-481.01 421.71,-476.68"/>
+<text xml:space="preserve" text-anchor="middle" x="466.76" y="-491.78" font-family="Arial" font-size="9.00"> loops back</text>
+</g>
+<!-- Tools -->
+<g id="node18" class="node">
+<title>Tools</title>
+<polygon fill="#ffffff" stroke="black" points="590.69,-362.45 469.31,-362.45 469.31,-326.05 590.69,-326.05 590.69,-362.45"/>
+<text xml:space="preserve" text-anchor="start" x="476.51" y="-346.35" font-family="Arial" font-weight="bold" font-size="11.00">verification_tools.py</text>
+<text xml:space="preserve" text-anchor="start" x="488.34" y="-335.35" font-family="Arial" font-size="11.00">(@tool functions)</text>
+</g>
+<!-- LG_L0&#45;&gt;Tools -->
+<g id="edge38" class="edge">
+<title>LG_L0-&gt;Tools</title>
+<path fill="none" stroke="black" d="M408.43,-433.27C427.98,-395.96 437.76,-383.7 473.23,-367.42"/>
+<polygon fill="black" stroke="black" points="474.26,-370.79 481.99,-363.55 471.43,-364.39 474.26,-370.79"/>
+<text xml:space="preserve" text-anchor="middle" x="453.76" y="-405.95" font-family="Arial" font-size="9.00"> 8. Executes</text>
+</g>
+<!-- LG_L1&#45;&gt;LG_Router -->
+<g id="edge12" class="edge">
+<title>LG_L1-&gt;LG_Router</title>
+<path fill="none" stroke="black" d="M459.02,-534.75C281.31,-499.42 228.74,-488.66 168.03,-472.95"/>
+<polygon fill="black" stroke="black" points="169,-469.59 158.44,-470.45 167.23,-476.36 169,-469.59"/>
+<text xml:space="preserve" text-anchor="middle" x="120.76" y="-491.78" font-family="Arial" font-size="9.00"> loops back</text>
+</g>
+<!-- LG_L1&#45;&gt;Tools -->
+<g id="edge39" class="edge">
+<title>LG_L1-&gt;Tools</title>
+<path fill="none" stroke="black" d="M118.44,-433.18C216.07,-372.78 243.29,-365.81 457.54,-349.62"/>
+<polygon fill="black" stroke="black" points="457.67,-353.12 467.38,-348.88 457.15,-346.14 457.67,-353.12"/>
+<text xml:space="preserve" text-anchor="middle" x="141.76" y="-405.95" font-family="Arial" font-size="9.00"> 8. Executes</text>
+</g>
+<!-- LG_L2&#45;&gt;LG_Router -->
+<g id="edge13" class="edge">
+<title>LG_L2-&gt;LG_Router</title>
+<path fill="none" stroke="black" d="M531.25,-523.63C554.74,-496.38 569.02,-485.73 608.53,-473.31"/>
+<polygon fill="black" stroke="black" points="609.44,-476.69 618,-470.45 607.41,-469.99 609.44,-476.69"/>
+<text xml:space="preserve" text-anchor="middle" x="665.76" y="-491.78" font-family="Arial" font-size="9.00"> loops back</text>
+</g>
+<!-- LG_L2&#45;&gt;Tools -->
+<g id="edge40" class="edge">
+<title>LG_L2-&gt;Tools</title>
+<path fill="none" stroke="black" d="M665.31,-433.24C617.68,-396.43 596.29,-380.29 577.21,-368.67"/>
+<polygon fill="black" stroke="black" points="579.02,-365.68 568.62,-363.68 575.51,-371.73 579.02,-365.68"/>
+<text xml:space="preserve" text-anchor="middle" x="670.76" y="-405.95" font-family="Arial" font-size="9.00"> 8. Executes</text>
+</g>
+<!-- LG_L3&#45;&gt;LG_Router -->
+<g id="edge14" class="edge">
+<title>LG_L3-&gt;LG_Router</title>
+<path fill="none" stroke="black" d="M468.4,-531.84C367.5,-500.93 335.95,-490.67 300.66,-474.65"/>
+<polygon fill="black" stroke="black" points="302.46,-471.63 291.92,-470.6 299.52,-477.98 302.46,-471.63"/>
+<text xml:space="preserve" text-anchor="middle" x="275.76" y="-491.78" font-family="Arial" font-size="9.00"> loops back</text>
+</g>
+<!-- LG_L3&#45;&gt;Tools -->
+<g id="edge41" class="edge">
+<title>LG_L3-&gt;Tools</title>
+<path fill="none" stroke="black" d="M273.03,-433.14C328.31,-382.88 347.78,-373.31 457.75,-355.48"/>
+<polygon fill="black" stroke="black" points="458.22,-358.94 467.54,-353.9 457.12,-352.03 458.22,-358.94"/>
+<text xml:space="preserve" text-anchor="middle" x="325.76" y="-405.95" font-family="Arial" font-size="9.00"> 8. Executes</text>
+</g>
+<!-- LG_L4&#45;&gt;LG_Router -->
+<g id="edge15" class="edge">
+<title>LG_L4-&gt;LG_Router</title>
+<path fill="none" stroke="black" d="M508.26,-519.06C505.72,-501.83 506.54,-492.72 512.84,-480.01"/>
+<polygon fill="black" stroke="black" points="515.89,-481.72 517.68,-471.28 509.77,-478.33 515.89,-481.72"/>
+<text xml:space="preserve" text-anchor="middle" x="596.76" y="-491.78" font-family="Arial" font-size="9.00"> loops back</text>
+</g>
+<!-- LG_L4&#45;&gt;Tools -->
+<g id="edge42" class="edge">
+<title>LG_L4-&gt;Tools</title>
+<path fill="none" stroke="black" d="M525.21,-433.36C516.94,-401.47 514.83,-388.99 518.87,-373.54"/>
+<polygon fill="black" stroke="black" points="522.15,-374.76 521.94,-364.16 515.5,-372.58 522.15,-374.76"/>
+<text xml:space="preserve" text-anchor="middle" x="554.76" y="-405.95" font-family="Arial" font-size="9.00"> 8. Executes</text>
+</g>
+<!-- LG_End&#45;&gt;DB -->
+<g id="edge36" class="edge">
+<title>LG_End-&gt;DB</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M905.34,-431.96C1014.23,-271.88 1031,-246.65 1063.07,-183.83"/>
+<polygon fill="black" stroke="black" points="1066.05,-185.68 1067.46,-175.18 1059.81,-182.51 1066.05,-185.68"/>
+<text xml:space="preserve" text-anchor="middle" x="1030" y="-299.95" font-family="Arial" font-size="9.00"> writes</text>
+</g>
+<!-- LG_Fail&#45;&gt;DB -->
+<g id="edge37" class="edge">
+<title>LG_Fail-&gt;DB</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1085.86,-431.64C1122.27,-282.23 1125.59,-260.52 1095.82,-184.68"/>
+<polygon fill="black" stroke="black" points="1099.12,-183.52 1092.17,-175.52 1092.62,-186.11 1099.12,-183.52"/>
+<text xml:space="preserve" text-anchor="middle" x="1101.26" y="-299.95" font-family="Arial" font-size="9.00"> writes log</text>
+</g>
+<!-- Tool_PAN -->
+<g id="node19" class="node">
+<title>Tool_PAN</title>
+<polygon fill="#ffffff" stroke="black" points="721.58,-279.25 656.42,-279.25 656.42,-243.25 721.58,-243.25 721.58,-279.25"/>
+<text xml:space="preserve" text-anchor="middle" x="689" y="-257.95" font-family="Arial" font-size="11.00">verify_pan</text>
+</g>
+<!-- Tools&#45;&gt;Tool_PAN -->
+<!-- Tool_AAD -->
+<g id="node20" class="node">
+<title>Tool_AAD</title>
+<polygon fill="#ffffff" stroke="black" points="638.58,-279.25 551.42,-279.25 551.42,-243.25 638.58,-243.25 638.58,-279.25"/>
+<text xml:space="preserve" text-anchor="middle" x="595" y="-257.95" font-family="Arial" font-size="11.00">verify_aadhaar</text>
+</g>
+<!-- Tools&#45;&gt;Tool_AAD -->
+<!-- Tool_LLM -->
+<g id="node21" class="node">
+<title>Tool_LLM</title>
+<polygon fill="#ffffff" stroke="black" points="533.82,-279.25 400.18,-279.25 400.18,-243.25 533.82,-243.25 533.82,-279.25"/>
+<text xml:space="preserve" text-anchor="middle" x="467" y="-257.95" font-family="Arial" font-size="11.00">run_llm_aml_pep_check</text>
+</g>
+<!-- Tools&#45;&gt;Tool_LLM -->
+<!-- Tool_Others -->
+<g id="node22" class="node">
+<title>Tool_Others</title>
+<polygon fill="#ffffff" stroke="black" points="904.09,-279.25 739.91,-279.25 739.91,-243.25 904.09,-243.25 904.09,-279.25"/>
+<text xml:space="preserve" text-anchor="middle" x="822" y="-257.95" font-family="Arial" font-size="11.00">verify_otp, verify_liveness, etc.</text>
+</g>
+<!-- Tools&#45;&gt;Tool_Others -->
+<!-- Tool_PAN&#45;&gt;DB -->
+<g id="edge43" class="edge">
+<title>Tool_PAN-&gt;DB</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M719.67,-242.76C880.01,-146.26 911.68,-131.18 1012.55,-140.46"/>
+<polygon fill="black" stroke="black" points="1012.07,-143.93 1022.36,-141.42 1012.75,-136.96 1012.07,-143.93"/>
+<text xml:space="preserve" text-anchor="middle" x="877.51" y="-217.15" font-family="Arial" font-size="9.00"> 10. Queries</text>
+</g>
+<!-- Tool_AAD&#45;&gt;DB -->
+<g id="edge44" class="edge">
+<title>Tool_AAD-&gt;DB</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M626.42,-242.83C830.8,-123.18 861.97,-110.24 1012.77,-135.92"/>
+<polygon fill="black" stroke="black" points="1011.89,-139.32 1022.34,-137.58 1013.09,-132.43 1011.89,-139.32"/>
+<text xml:space="preserve" text-anchor="middle" x="680.51" y="-217.15" font-family="Arial" font-size="9.00"> 10. Queries</text>
+</g>
+<!-- Groq -->
+<g id="node23" class="node">
+<title>Groq</title>
+<polygon fill="#ffffff" stroke="black" points="521.9,-166.45 412.1,-166.45 412.1,-130.05 521.9,-130.05 521.9,-166.45"/>
+<text xml:space="preserve" text-anchor="start" x="443.17" y="-150.35" font-family="Arial" font-weight="bold" font-size="11.00">Groq API</text>
+<text xml:space="preserve" text-anchor="start" x="419.3" y="-139.35" font-family="Arial" font-size="11.00">Llama 3 LLM Agent</text>
+</g>
+<!-- Tool_LLM&#45;&gt;Groq -->
+<g id="edge45" class="edge">
+<title>Tool_LLM-&gt;Groq</title>
+<path fill="none" stroke="black" stroke-dasharray="5,2" d="M463.47,-243.04C456.54,-206.94 454.56,-192.78 457.54,-177.75"/>
+<polygon fill="black" stroke="black" points="460.84,-178.96 460.01,-168.4 454.07,-177.18 460.84,-178.96"/>
+<text xml:space="preserve" text-anchor="middle" x="492.01" y="-217.15" font-family="Arial" font-size="9.00"> 10. API Call</text>
+</g>
+<!-- Col_Users -->
+<g id="node25" class="node">
+<title>Col_Users</title>
+<path fill="#ffffff" stroke="black" d="M942.17,-79.5C942.17,-83 914.75,-85.85 881,-85.85 847.25,-85.85 819.83,-83 819.83,-79.5 819.83,-79.5 819.83,-22.35 819.83,-22.35 819.83,-18.85 847.25,-16 881,-16 914.75,-16 942.17,-18.85 942.17,-22.35 942.17,-22.35 942.17,-79.5 942.17,-79.5"/>
+<path fill="none" stroke="black" d="M942.17,-79.5C942.17,-76 914.75,-73.15 881,-73.15 847.25,-73.15 819.83,-76 819.83,-79.5"/>
+<text xml:space="preserve" text-anchor="start" x="834.23" y="-53.02" font-family="Arial" font-weight="bold" font-size="11.00">application_users</text>
+<text xml:space="preserve" text-anchor="start" x="844.02" y="-42.02" font-family="Arial" font-size="11.00">(Primary State)</text>
+</g>
+<!-- DB&#45;&gt;Col_Users -->
+<g id="edge22" class="edge">
+<title>DB-&gt;Col_Users</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1057.39,-122.53C1012.46,-74.26 995.15,-62.3 942.59,-56.05"/>
+</g>
+<!-- Col_Log -->
+<g id="node26" class="node">
+<title>Col_Log</title>
+<path fill="#ffffff" stroke="black" d="M1067.84,-74.55C1067.84,-77.45 1043.71,-79.8 1014,-79.8 984.29,-79.8 960.16,-77.45 960.16,-74.55 960.16,-74.55 960.16,-27.3 960.16,-27.3 960.16,-24.4 984.29,-22.05 1014,-22.05 1043.71,-22.05 1067.84,-24.4 1067.84,-27.3 1067.84,-27.3 1067.84,-74.55 1067.84,-74.55"/>
+<path fill="none" stroke="black" d="M1067.84,-74.55C1067.84,-71.65 1043.71,-69.3 1014,-69.3 984.29,-69.3 960.16,-71.65 960.16,-74.55"/>
+<text xml:space="preserve" text-anchor="middle" x="1014" y="-47.62" font-family="Arial" font-size="11.00">verification_logs</text>
+</g>
+<!-- DB&#45;&gt;Col_Log -->
+<g id="edge23" class="edge">
+<title>DB-&gt;Col_Log</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1072.93,-122.42C1065.77,-100.27 1060.79,-88.46 1052.49,-79.01"/>
+</g>
+<!-- Col_PAN -->
+<g id="node27" class="node">
+<title>Col_PAN</title>
+<path fill="#ffffff" stroke="black" d="M1214.24,-74.55C1214.24,-77.45 1185.45,-79.8 1150,-79.8 1114.55,-79.8 1085.76,-77.45 1085.76,-74.55 1085.76,-74.55 1085.76,-27.3 1085.76,-27.3 1085.76,-24.4 1114.55,-22.05 1150,-22.05 1185.45,-22.05 1214.24,-24.4 1214.24,-27.3 1214.24,-27.3 1214.24,-74.55 1214.24,-74.55"/>
+<path fill="none" stroke="black" d="M1214.24,-74.55C1214.24,-71.65 1185.45,-69.3 1150,-69.3 1114.55,-69.3 1085.76,-71.65 1085.76,-74.55"/>
+<text xml:space="preserve" text-anchor="middle" x="1150" y="-47.62" font-family="Arial" font-size="11.00">source_pan_holders</text>
+</g>
+<!-- DB&#45;&gt;Col_PAN -->
+<g id="edge24" class="edge">
+<title>DB-&gt;Col_PAN</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1099.55,-122.55C1114.93,-101.23 1123.25,-89.64 1129.87,-80.23"/>
+</g>
+<!-- Col_AAD -->
+<g id="node28" class="node">
+<title>Col_AAD</title>
+<path fill="#ffffff" stroke="black" d="M1382.25,-74.55C1382.25,-77.45 1348.52,-79.8 1307,-79.8 1265.48,-79.8 1231.75,-77.45 1231.75,-74.55 1231.75,-74.55 1231.75,-27.3 1231.75,-27.3 1231.75,-24.4 1265.48,-22.05 1307,-22.05 1348.52,-22.05 1382.25,-24.4 1382.25,-27.3 1382.25,-27.3 1382.25,-74.55 1382.25,-74.55"/>
+<path fill="none" stroke="black" d="M1382.25,-74.55C1382.25,-71.65 1348.52,-69.3 1307,-69.3 1265.48,-69.3 1231.75,-71.65 1231.75,-74.55"/>
+<text xml:space="preserve" text-anchor="middle" x="1307" y="-47.62" font-family="Arial" font-size="11.00">source_aadhaar_holders</text>
+</g>
+<!-- DB&#45;&gt;Col_AAD -->
+<g id="edge25" class="edge">
+<title>DB-&gt;Col_AAD</title>
+<path fill="none" stroke="black" stroke-dasharray="1,5" d="M1125.78,-122.36C1179.31,-91.55 1207.12,-76.46 1231.47,-67.5"/>
+</g>
+</g>
+</svg>

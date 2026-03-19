@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+langgraph
+langchain
+langchain-groq
+groq
+pymongo
+sse-starlette
+pydantic-settings
+python-dotenv

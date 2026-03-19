@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staged KYC Verification Portal</title>
+    <!-- 1. Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Simple scrollbar for logs */
+        .log-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        /* Simple loading spinner */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #4f46e5;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        /* Hide form sections by default */
+        .form-section {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <!-- App Container -->
+    <div class="container mx-auto p-4 md:p-8 max-w-6xl">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Staged KYC Verification Portal</h1>
+        
+        <!-- Error Bar -->
+        <div id="error-bar" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-6" role="alert">
+            <strong class="font-bold">Error: </strong>
+            <span id="error-message" class="block sm:inline"></span>
+        </div>
+
+        <!-- User Selection -->
+        <div class="mb-6 bg-white p-5 rounded-lg shadow-lg">
+            <label for="userSelect" class="block text-sm font-medium text-gray-700 mb-2">Select User</label>
+            <div class="flex space-x-2">
+                <select id="userSelect" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="">Loading users...</option>
+                </select>
+                <button id="refreshUsersBtn" title="Refresh Users" class="p-3 border border-gray-300 rounded-lg shadow-sm bg-gray-50 hover:bg-gray-100">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2.082a9 9 0 01-16.76 0m16.76 0L19.5 15.5m.582 5H20v-5m-15.356-2.082a9 9 0 0116.76 0m-16.76 0L4.5 8.5"></path></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Column 1: User Profile -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Profile Card -->
+                <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+                    <div class="p-5 border-b border-gray-200">
+                        <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                            <svg class="w-5 h-5 mr-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                            Current Profile
+                        </h2>
+                    </div>
+                    <div class="p-5" id="profile-card-content">
+                        <p class="text-gray-500">Select a user to load profile.</p>
+                    </div>
+                </div>
+
+                <!-- Verified Data Card -->
+                <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+                    <div class="p-5 border-b border-gray-200">
+                        <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                            <svg class="w-5 h-5 mr-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4M4 7v10"></path></svg>
+                            Verified Data
+                        </h2>
+                    </div>
+                    <div class="p-5">
+                        <pre id="verified-data-pre" class="text-xs bg-gray-50 p-3 rounded-lg overflow-x-auto max-h-96">
+<p class="text-gray-500">No data verified yet.</p>
+                        </pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 2: Verification Workflow -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Workflow Card -->
+                <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+                    <div class="p-5 border-b border-gray-200">
+                        <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                            <svg class="w-5 h-5 mr-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                            Verification Workflow
+                        </h2>
+                    </div>
+                    <div class="p-5 space-y-4" id="workflow-card-content">
+                        <div>
+                            <label for="targetLevel" class="block text-sm font-medium text-gray-700">Target Level</label>
+                            <select id="targetLevel" class="mt-1 w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <!-- Options will be populated by JS -->
+                            </select>
+                        </div>
+
+                        <!-- Form sections, hidden by default -->
+                        <div id="form-level-0" class="form-section border border-gray-200 rounded-lg p-4 space-y-3">
+                            <h3 class="text-md font-semibold text-blue-600">Level 0: Lite (OTP)</h3>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Phone</label>
+                                <input id="l0-phone" type="text" class="form-input" placeholder="+1234567890">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Phone OTP</label>
+                                <input id="l0-phone_otp" type="text" class="form-input" placeholder="123456">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Email</label>
+                                <input id="l0-email" type="text" class="form-input" placeholder="user@example.com">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Email OTP</label>
+                                <input id="l0-email_otp" type="text" class="form-input" placeholder="123456">
+                            </div>
+                        </div>
+
+                        <div id="form-level-1" class="form-section border border-gray-200 rounded-lg p-4 space-y-3">
+                            <h3 class="text-md font-semibold text-indigo-600">Level 1: Basic (PAN)</h3>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">PAN JSON Data</label>
+                                <textarea id="l1-json_data" rows="4" class="form-textarea" placeholder='{ "pan_number": "...", "full_name": "...", "dob": "YYYY-MM-DD" }'></textarea>
+                            </div>
+                        </div>
+                        
+                        <div id="form-level-2" class="form-section border border-gray-200 rounded-lg p-4 space-y-3">
+                            <h3 class="text-md font-semibold text-purple-600">Level 2: Verified (Aadhaar)</h3>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Aadhaar JSON Data</label>
+                                <textarea id="l2-json_data" rows="4" class="form-textarea" placeholder='{ "aadhaar_number": "...", "full_name": "...", "dob": "YYYY-MM-DD" }'></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Selfie Path (mock)</label>
+                                <input id="l2-selfie_path" type="text" class="form-input" placeholder="e.g., 'good_selfie.jpg'">
+                            </div>
+                        </div>
+
+                        <div id="form-level-3" class="form-section border border-gray-200 rounded-lg p-4 space-y-3">
+                            <h3 class="text-md font-semibold text-pink-600">Level 3: Full (Video KYC)</h3>
+                            <div><label class="block text-sm font-medium text-gray-700">Bank Account</label><input id="l3-bank_account" type="text" class="form-input"></div>
+                            <div><label class="block text-sm font-medium text-gray-700">IFSC Code</label><input id="l3-ifsc" type="text" class="form-input"></div>
+                            <div><label class="block text-sm font-medium text-gray-700">Address JSON Data</label><textarea id="l3-json_data" rows="4" class="form-textarea" placeholder='{ "address_line": "...", "pincode": "..." }'></textarea></div>
+                            <div><label class="block text-sm font-medium text-gray-700">Video Call ID</label><input id="l3-video_call_id" type="text" class="form-input" placeholder="e.g., 'vid_call_xyz'"></div>
+                        </div>
+                        
+                        <div id="form-level-4" class="form-section border border-gray-200 rounded-lg p-4 space-y-3">
+                            <h3 class="text-md font-semibold text-green-600">Level 4: EDD (Verified+)</h3>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Income JSON Data</label>
+                                <textarea id="l4-json_data" rows="4" class="form-textarea" placeholder='{ "doc_type": "ITR", "annual_income": 1000000 }'></textarea>
+                            </div>
+                        </div>
+
+                        <button id="startVerificationBtn" class="w-full flex justify-center items-center p-3 font-semibold text-white bg-indigo-600 rounded-lg shadow-sm hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all">
+                            Start Verification
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Log Card -->
+                <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+                    <div class="p-5 border-b border-gray-200">
+                        <h2 class="text-lg font-semibold text-gray-800 flex items-center">
+                            <svg class="w-5 h-5 mr-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Live Verification Log
+                        </h2>
+                    </div>
+                    <div class="p-5">
+                        <div id="log-container" class="log-container bg-gray-900 text-white font-mono text-sm p-4 rounded-lg">
+                            <p class="text-gray-400">Awaiting verification start...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Final Result Card -->
+                <div id="final-result-card" class="hidden bg-white shadow-lg rounded-lg overflow-hidden">
+                    <div class="p-5 border-b border-gray-200">
+                        <h2 id="final-result-title" class="text-lg font-semibold text-gray-800 flex items-center">
+                            Final Result
+                        </h2>
+                    </div>
+                    <div class="p-5">
+                        <pre id="final-result-pre" class="text-xs bg-gray-50 p-3 rounded-lg overflow-x-auto"></pre>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Vanilla JavaScript Application Logic -->
+    <script>
+        // Define helper styles
+        const formInputStyle = "mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm disabled:bg-gray-50";
+        const formTextareaStyle = "mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm font-mono disabled:bg-gray-50";
+        // Apply styles
+        document.querySelectorAll('.form-input').forEach(el => el.className = formInputStyle);
+        document.querySelectorAll('.form-textarea').forEach(el => el.className = formTextareaStyle);
+
+        // --- Sample Data for Forms ---
+        const SAMPLE_DATA = {
+            level1: { "pan_number": "ABCDE1234F", "full_name": "Adithya Vardan M", "dob": "2004-05-10" },
+            level2: { "aadhaar_data": { "aadhaar_number": "123456789012", "full_name": "Adithya Vardan M", "dob": "2004-05-10" }, "selfie_path": "good_selfie.jpg" },
+            level3: { "bank_account": "1234567890", "ifsc": "HDFC000123", "address_data": { "address_line": "123 Anna Salai", "pincode": "600001" }, "video_call_id": "vid_call_xyz" },
+            level4: { "income_data": { "doc_type": "ITR-V", "annual_income": 1000000 } },
+            level4_pep: {
+                level1: { "pan_number": "GKPDX1234R", "full_name": "Robert K Mueller", "dob": "1944-08-07" },
+                level2: { "aadhaar_data": { "aadhaar_number": "567812349012", "full_name": "Robert K Mueller", "dob": "1944-08-07" }, "selfie_path": "good_selfie.jpg" },
+                level3: { "bank_account": "987654321", "ifsc": "CITI000123", "address_data": { "pincode": "10001" }, "video_call_id": "vid_call_pep" },
+                level4: { "income_data": { "doc_type": "Foreign Tax", "annual_income": 5000000 } }
+            }
+        };
+
+        const LEVEL_NAMES = {
+            "-1": "New User", 0: "Lite (OTP)", 1: "Basic (PAN)", 2: "Verified (Aadhaar)", 3: "Full (Video KYC)", 4: "EDD (Verified+)"
+        };
+        const LEVEL_COLORS = {
+            "-1": "text-gray-500 bg-gray-100", 0: "text-blue-600 bg-blue-100", 1: "text-indigo-600 bg-indigo-100",
+            2: "text-purple-600 bg-purple-100", 3: "text-pink-600 bg-pink-100", 4: "text-green-600 bg-green-100"
+        };
+        
+        // --- API URL ---
+        const API_URL = ""; // Relative path
+
+        // --- App State ---
+        let state = {
+            users: [],
+            currentUser: null,
+            isVerifying: false,
+            eventSource: null
+        };
+
+        // --- DOM Elements ---
+        const userSelect = document.getElementById("userSelect");
+        const refreshUsersBtn = document.getElementById("refreshUsersBtn");
+        const profileCardContent = document.getElementById("profile-card-content");
+        const verifiedDataPre = document.getElementById("verified-data-pre");
+        const targetLevelSelect = document.getElementById("targetLevel");
+        const startVerificationBtn = document.getElementById("startVerificationBtn");
+        const logContainer = document.getElementById("log-container");
+        const finalResultCard = document.getElementById("final-result-card");
+        const finalResultTitle = document.getElementById("final-result-title");
+        const finalResultPre = document.getElementById("final-result-pre");
+        const errorBar = document.getElementById("error-bar");
+        const errorMessage = document.getElementById("error-message");
+        const formSections = {
+            0: document.getElementById("form-level-0"),
+            1: document.getElementById("form-level-1"),
+            2: document.getElementById("form-level-2"),
+            3: document.getElementById("form-level-3"),
+            4: document.getElementById("form-level-4"),
+        };
+
+        // --- Utility Functions ---
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorBar.classList.remove("hidden");
+        }
+        function clearError() {
+            errorBar.classList.add("hidden");
+        }
+        function setVerifying(isVerifying) {
+            state.isVerifying = isVerifying;
+            startVerificationBtn.disabled = isVerifying;
+            startVerificationBtn.innerHTML = isVerifying ? '<div class="spinner"></div>' : `Start Verification`;
+        }
+        function addLog(log, type = "info") {
+            if (logContainer.children.length === 1 && logContainer.children[0].textContent === "Awaiting verification start...") {
+                logContainer.innerHTML = "";
+            }
+            const p = document.createElement("p");
+            const color = type === "error" ? "text-red-400" : "text-green-400";
+            p.innerHTML = `<span class="mr-2 ${color}">&gt;</span> ${log}`;
+            logContainer.appendChild(p);
+            logContainer.scrollTop = logContainer.scrollHeight; // Auto-scroll
+        }
+        
+        // --- Core App Logic ---
+
+        // 1. Fetch all users
+        async function fetchUsers() {
+            try {
+                clearError();
+                userSelect.disabled = true;
+                const response = await fetch(`${API_URL}/api/users`);
+                if (!response.ok) throw new Error("Backend not responding. Is it running?");
+                state.users = await response.json();
+                
+                userSelect.innerHTML = ""; // Clear "Loading..."
+                state.users.forEach(user => {
+                    const option = document.createElement("option");
+                    option.value = user.user_id;
+                    option.textContent = `${user.full_name || user.user_id} (Level: ${user.kyc_level})`;
+                    userSelect.appendChild(option);
+                });
+
+                if (state.users.length > 0) {
+                    await fetchUserProfile(state.users[0].user_id);
+                }
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                userSelect.disabled = false;
+            }
+        }
+
+        // 2. Fetch a single user's profile
+        async function fetchUserProfile(userId) {
+            try {
+                clearError();
+                setVerifying(false);
+                logContainer.innerHTML = '<p class="text-gray-400">Awaiting verification start...</p>';
+                finalResultCard.classList.add("hidden");
+
+                const response = await fetch(`${API_URL}/api/user/${userId}`);
+                if (!response.ok) throw new Error(`Failed to fetch profile for ${userId}`);
+                state.currentUser = await response.json();
+
+                // Update Profile Card
+                const levelInfo = LEVEL_COLORS[state.currentUser.kyc_level] || LEVEL_COLORS["-1"];
+                const statusColor = state.currentUser.last_verification_status?.includes("Failed") ? "text-red-500" : "text-gray-500";
+                profileCardContent.innerHTML = `
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="font-semibold text-lg truncate">${state.currentUser.full_name || state.currentUser.user_id}</span>
+                            <span class="px-3 py-1 text-xs font-bold rounded-full ${levelInfo} whitespace-nowrap">
+                                LEVEL ${state.currentUser.kyc_level}
+                            </span>
+                        </div>
+                        <p class="text-sm text-gray-600 truncate">${state.currentUser.email}</p>
+                        <p class="text-sm text-gray-600 truncate">${state.currentUser.phone_number}</p>
+                        <p class="text-sm italic ${statusColor}">Status: ${state.currentUser.last_verification_status}</p>
+                    </div>`;
+
+                // Update Verified Data Card
+                const verifiedData = state.currentUser.verified_data;
+                if (verifiedData && Object.keys(verifiedData).length > 0) {
+                    verifiedDataPre.textContent = JSON.stringify(verifiedData, null, 2);
+                } else {
+                    verifiedDataPre.innerHTML = `<p class="text-gray-500">No data verified yet.</p>`;
+                }
+
+                // Update Target Level Select
+                const currentLevel = state.currentUser.kyc_level;
+                targetLevelSelect.innerHTML = "";
+                if (currentLevel === 4) {
+                    targetLevelSelect.disabled = true;
+                    startVerificationBtn.disabled = true;
+                    const option = document.createElement("option");
+                    option.textContent = "User is fully verified";
+                    targetLevelSelect.appendChild(option);
+                } else {
+                    targetLevelSelect.disabled = false;
+                    startVerificationBtn.disabled = false;
+                    for (let i = currentLevel + 1; i <= 4; i++) {
+                        const option = document.createElement("option");
+                        option.value = i;
+                        option.textContent = `Level ${i} (${LEVEL_NAMES[i]})`;
+                        targetLevelSelect.appendChild(option);
+                    }
+                }
+
+                // Pre-fill forms and update visibility
+                updateFormVisibility();
+                prefillForms(userId, currentLevel + 1);
+
+            } catch (err) {
+                showError(err.message);
+            }
+        }
+
+        // 3. Update form visibility based on target level
+        function updateFormVisibility() {
+            const currentLevel = state.currentUser.kyc_level;
+            const targetLevel = parseInt(targetLevelSelect.value);
+
+            for (let i = 0; i <= 4; i++) {
+                if (i > currentLevel && i <= targetLevel) {
+                    formSections[i].style.display = "block";
+                } else {
+                    formSections[i].style.display = "none";
+                }
+            }
+        }
+
+        // 4. Pre-fill forms with sample data
+        function prefillForms(userId, nextLevel) {
+            // L0
+            document.getElementById('l0-phone').value = state.currentUser.phone_number || "";
+            document.getElementById('l0-email').value = state.currentUser.email || "";
+            document.getElementById('l0-phone_otp').value = "123456";
+            document.getElementById('l0-email_otp').value = "123456";
+
+            let sL1, sL2, sL3, sL4;
+            if (userId === 'u789_robert') {
+                sL1 = SAMPLE_DATA.level4_pep.level1;
+                sL2 = SAMPLE_DATA.level4_pep.level2;
+                sL3 = SAMPLE_DATA.level4_pep.level3;
+                sL4 = SAMPLE_DATA.level4_pep.level4;
+            } else {
+                sL1 = SAMPLE_DATA.level1;
+                sL2 = SAMPLE_DATA.level2;
+                sL3 = SAMPLE_DATA.level3;
+                sL4 = SAMPLE_DATA.level4;
+            }
+
+            document.getElementById('l1-json_data').value = JSON.stringify(sL1, null, 2);
+            document.getElementById('l2-json_data').value = JSON.stringify(sL2.aadhaar_data, null, 2);
+            document.getElementById('l2-selfie_path').value = sL2.selfie_path;
+            
+            document.getElementById('l3-bank_account').value = sL3.bank_account;
+            document.getElementById('l3-ifsc').value = sL3.ifsc;
+            document.getElementById('l3-json_data').value = JSON.stringify(sL3.address_data, null, 2);
+            document.getElementById('l3-video_call_id').value = sL3.video_call_id;
+
+            document.getElementById('l4-json_data').value = JSON.stringify(sL4, null, 2);
+        }
+
+        // 5. Start the verification stream
+        function startVerification() {
+            clearError();
+            setVerifying(true);
+            logContainer.innerHTML = ""; // Clear logs
+            finalResultCard.classList.add("hidden");
+
+            const currentLevel = state.currentUser.kyc_level;
+            const targetLevel = parseInt(targetLevelSelect.value);
+            const dataToSend = {};
+            
+            try {
+                // Collect data from visible forms
+                for (let i = currentLevel + 1; i <= targetLevel; i++) {
+                    if (i === 0) {
+                        dataToSend.level0 = {
+                            phone: document.getElementById('l0-phone').value,
+                            phone_otp: document.getElementById('l0-phone_otp').value,
+                            email: document.getElementById('l0-email').value,
+                            email_otp: document.getElementById('l0-email_otp').value,
+                        };
+                    } else if (i === 1) {
+                        dataToSend.level1 = JSON.parse(document.getElementById('l1-json_data').value);
+                    } else if (i === 2) {
+                        dataToSend.level2 = {
+                            aadhaar_data: JSON.parse(document.getElementById('l2-json_data').value),
+                            selfie_path: document.getElementById('l2-selfie_path').value
+                        };
+                    } else if (i === 3) {
+                        dataToSend.level3 = {
+                            bank_account: document.getElementById('l3-bank_account').value,
+                            ifsc: document.getElementById('l3-ifsc').value,
+                            address_data: JSON.parse(document.getElementById('l3-json_data').value),
+                            video_call_id: document.getElementById('l3-video_call_id').value
+                        };
+                    } else if (i === 4) {
+                        dataToSend.level4 = {
+                            income_data: JSON.parse(document.getElementById('l4-json_data').value)
+                        };
+                    }
+                }
+            } catch (e) {
+                showError(`Invalid JSON format. Please check your inputs. ${e.message}`);
+                setVerifying(false);
+                return;
+            }
+
+            const payload = {
+                user_id: state.currentUser.user_id,
+                target_level: targetLevel,
+                data: dataToSend
+            };
+
+            // Start EventSource
+            const eventSource = new EventSource(`${API_URL}/api/verify-staged-stream?payload=${encodeURIComponent(JSON.stringify(payload))}`);
+            state.eventSource = eventSource;
+            
+            eventSource.onmessage = function(event) {
+                // This handles generic "message" events if server doesn't specify an event type
+                console.log("Raw message:", event.data);
+            };
+
+            eventSource.addEventListener("log_update", (event) => {
+                const data = JSON.parse(event.data);
+                addLog(data.log, "info");
+            });
+
+            eventSource.addEventListener("final_result", (event) => {
+                const data = JSON.parse(event.data);
+                finalResultPre.textContent = JSON.stringify(data, null, 2);
+                finalResultTitle.textContent = "Final Result (Success)";
+                finalResultCard.classList.remove("hidden");
+                finalResultPre.classList.remove("text-red-600");
+                finalResultPre.classList.add("text-green-600");
+                
+                setVerifying(false);
+                eventSource.close();
+                fetchUserProfile(state.currentUser.user_id); // Refresh profile
+            });
+
+            eventSource.addEventListener("error", (event) => {
+                let errorData;
+                try {
+                    // Try to parse error event data
+                    errorData = JSON.parse(event.data);
+                } catch (e) {
+                    errorData = { error: "Verification stream failed or disconnected." };
+                }
+
+                addLog(errorData.error || "Stream error", "error");
+                showError(errorData.error || "Verification stream failed.");
+                
+                finalResultPre.textContent = JSON.stringify(errorData, null, 2);
+                finalResultTitle.textContent = "Final Result (Error)";
+                finalResultCard.classList.remove("hidden");
+                finalResultPre.classList.add("text-red-600");
+                finalResultPre.classList.remove("text-green-600");
+
+                setVerifying(false);
+                eventSource.close();
+                fetchUserProfile(state.currentUser.user_id); // Refresh (to show failed status)
+            });
+        }
+
+        // --- Initial Load ---
+        window.onload = () => {
+            // Add event listeners
+            userSelect.addEventListener("change", (e) => fetchUserProfile(e.target.value));
+            refreshUsersBtn.addEventListener("click", fetchUsers);
+            targetLevelSelect.addEventListener("change", updateFormVisibility);
+            startVerificationBtn.addEventListener("click", startVerification);
+
+            // Initial fetch
+            fetchUsers();
+        };
+
+    </script>
+</body>
+</html>
+

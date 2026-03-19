@@ -1,0 +1,3 @@
+make user tell a random otp or a different questions or captcha challenges
+api key as in a wrapper, with payloads 
+zero knowledge proof - verification with yes or no

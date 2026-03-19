@@ -1,56 +1,41 @@
-"""
-Verification Tools for KYC Workflow
-
-Contains both simulated tools (OTP, Bank, Video KYC) and real tools (Aadhaar OCR, Liveness, Face Match).
-"""
-
 import os
 import time
-import tempfile
-import base64
-import logging
 from langchain_core.tools import tool
+from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
+from datetime import datetime
 
-# Configure logging
-logger = logging.getLogger(__name__)
+# Import our MongoDB functions
+import mongo_db as db
 
-# --- Try to import real verification modules ---
+# --- Groq LLM Imports ---
+from langchain_groq import ChatGroq
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+
+# --- Configuration ---
+# Load .env file for GROQ_API_KEY
+load_dotenv()
+
+class GroqSettings(BaseSettings):
+    GROQ_API_KEY: str = "YOUR_FALLBACK_KEY"
+
 try:
-    from inference import classify_document, extract_and_display_ocr_text
-    INFERENCE_AVAILABLE = True
-except ImportError:
-    logger.warning("inference.py not available - using simulated Aadhaar verification")
-    INFERENCE_AVAILABLE = False
+    groq_settings = GroqSettings()
+except Exception as e:
+    print(f"Error loading Groq settings: {e}. Please set GROQ_API_KEY in .env")
+    
+# --- Tool Definitions ---
 
-try:
-    from face_matching import match_faces, detect_face, decode_base64_image
-    import numpy as np
-    FACE_MATCHING_AVAILABLE = True
-except ImportError:
-    logger.warning("face_matching.py not available - using simulated face matching")
-    FACE_MATCHING_AVAILABLE = False
-
-try:
-    import mock_database as db
-    DATABASE_AVAILABLE = True
-except ImportError:
-    logger.warning("mock_database.py not available")
-    DATABASE_AVAILABLE = False
-
-
-# =============================================================================
-# Level 0 Tools - OTP Verification (Simulated)
-# =============================================================================
-
+# --- Level 0 Tools ---
 @tool
 def verify_phone_otp(phone: str, otp: str) -> dict:
     """Simulates verifying a Phone OTP."""
     print(f"--- Verifying Phone {phone} with OTP {otp} ---")
-    time.sleep(0.5)
+    time.sleep(0.5) # Simulate network delay
     if otp == "123456":
         return {"status": "Verified", "details": "Phone OTP verified."}
     return {"status": "Failed", "details": "Invalid OTP."}
-
 
 @tool
 def verify_email_otp(email: str, otp: str) -> dict:
@@ -61,405 +46,171 @@ def verify_email_otp(email: str, otp: str) -> dict:
         return {"status": "Verified", "details": "Email OTP verified."}
     return {"status": "Failed", "details": "Invalid OTP."}
 
-
-# =============================================================================
-# Level 1 Tools - Aadhaar + Liveness + Face Matching (REAL)
-# =============================================================================
-
-@tool
-def verify_aadhaar_ocr(aadhaar_image_path: str = "", aadhaar_data: dict = None) -> dict:
-    """
-    Verifies Aadhaar document using YOLO classification and Surya OCR.
-    
-    Args:
-        aadhaar_image_path: Path to the Aadhaar image file
-        aadhaar_data: Pre-extracted Aadhaar data (if already available)
-    
-    Returns:
-        Verification result with extracted fields
-    """
-    print(f"--- Verifying Aadhaar Document ---")
-    
-    # Handle if aadhaar_data is passed as a string (from JSON)
-    if isinstance(aadhaar_data, str):
-        import json
-        try:
-            aadhaar_data = json.loads(aadhaar_data)
-        except:
-            aadhaar_data = {}
-    
-    # Ensure aadhaar_data is a dict
-    if not isinstance(aadhaar_data, dict):
-        aadhaar_data = {}
-    
-    # If pre-extracted data is provided, use it directly
-    aadhaar_number = aadhaar_data.get('aadhaar_number', aadhaar_data.get('Aadhaar Number', ''))
-    name = aadhaar_data.get('full_name', aadhaar_data.get('name', aadhaar_data.get('Name', '')))
-    dob = aadhaar_data.get('dob', aadhaar_data.get('DOB', ''))
-    
-    if aadhaar_number:
-        print(f"Using pre-extracted Aadhaar data: {aadhaar_number}")
-        
-        # Verify against database using the correct format
-        if DATABASE_AVAILABLE:
-            # Convert to mock_database expected format
-            db_query = {
-                "Aadhaar Number": aadhaar_number,
-                "Name": name,
-                "DOB": dob
-            }
-            db_record = db.verify_aadhaar(db_query)
-            if db_record and db_record.get('verified'):
-                return {
-                    "status": "Verified",
-                    "details": "Aadhaar matched with database.",
-                    "aadhaar_number": aadhaar_number,
-                    "name": db_record.get('database_record', {}).get('name', name),
-                    "dob": db_record.get('database_record', {}).get('dob', dob)
-                }
-        
-        # Return based on provided data (format validated)
-        return {
-            "status": "Verified",
-            "details": "Aadhaar data extracted and validated.",
-            "aadhaar_number": aadhaar_number,
-            "name": name,
-            "dob": dob
-        }
-    
-    # If we have an image path and real inference is available
-    if aadhaar_image_path and INFERENCE_AVAILABLE and os.path.exists(aadhaar_image_path):
-        print(f"Running YOLO + OCR on {aadhaar_image_path}")
-        try:
-            # Classify document
-            doc_type, confidence = classify_document(aadhaar_image_path)
-            if "aadhar" not in doc_type.lower() and "aadhaar" not in doc_type.lower():
-                return {
-                    "status": "Failed",
-                    "details": f"Document is not Aadhaar. Detected: {doc_type}"
-                }
-            
-            # Extract text via OCR
-            ocr_result = extract_and_display_ocr_text(aadhaar_image_path)
-            
-            # Parse Aadhaar fields from OCR
-            extracted = parse_aadhaar_from_ocr(ocr_result)
-            
-            if extracted.get('aadhaar_number'):
-                return {
-                    "status": "Verified",
-                    "details": f"Aadhaar extracted via OCR. Confidence: {confidence:.1%}",
-                    "aadhaar_number": extracted.get('aadhaar_number', ''),
-                    "name": extracted.get('name', ''),
-                    "dob": extracted.get('dob', '')
-                }
-            else:
-                return {
-                    "status": "Failed",
-                    "details": "Could not extract Aadhaar number from document."
-                }
-        except Exception as e:
-            logger.error(f"OCR extraction error: {e}")
-            return {"status": "Failed", "details": f"OCR error: {str(e)}"}
-    
-    # Fallback: simulated verification
-    print("Using simulated Aadhaar verification")
-    time.sleep(1)
-    return {
-        "status": "Verified",
-        "details": "Aadhaar verified (demo mode).",
-        "aadhaar_number": "XXXX XXXX 1234",
-        "name": "Demo User",
-        "dob": "01/01/1990"
-    }
-
-
-def parse_aadhaar_from_ocr(ocr_text: str) -> dict:
-    """Parse Aadhaar fields from OCR text."""
-    import re
-    result = {"name": "", "dob": "", "aadhaar_number": "", "gender": ""}
-    
-    # Extract Aadhaar number (12 digits, possibly with spaces)
-    aadhaar_patterns = [
-        r'(\d{4}\s+\d{4}\s+\d{4})',
-        r'(\d{4}\s+\d{4}\s+\d{3,4})',
-        r'(\d{12})',
-    ]
-    for pattern in aadhaar_patterns:
-        matches = re.findall(pattern, ocr_text)
-        if matches:
-            result["aadhaar_number"] = matches[-1]
-            break
-    
-    # Extract DOB
-    dob_patterns = [
-        r'DOB\s*[:\-]?\s*(\d{2}/\d{2}/\d{4})',
-        r'Date of Birth\s*[:\-]?\s*(\d{2}/\d{2}/\d{4})',
-        r'(\d{2}/\d{2}/\d{4})',
-    ]
-    for pattern in dob_patterns:
-        match = re.search(pattern, ocr_text, re.IGNORECASE)
-        if match:
-            result["dob"] = match.group(1)
-            break
-    
-    # Extract name (look for capitalized words near the top)
-    lines = ocr_text.split('\n')
-    for line in lines[:10]:
-        if len(line) > 3 and line.strip() and not any(c.isdigit() for c in line[:5]):
-            # Skip common headers
-            if not any(skip in line.lower() for skip in ['government', 'india', 'aadhaar', 'unique']):
-                result["name"] = line.strip()
-                break
-    
-    return result
-
-
-@tool
-def verify_liveness_real(selfie_data: str) -> dict:
-    """
-    Verifies face liveness using real face detection.
-    
-    Args:
-        selfie_data: Base64 encoded selfie image
-    
-    Returns:
-        Liveness verification result
-    """
-    print("--- Running Face Liveness Check ---")
-    
-    # If no selfie is provided, use demo mode for testing
-    if not selfie_data or len(selfie_data) < 100:
-        print("No selfie provided - using demo mode")
-        time.sleep(0.5)
-        return {
-            "status": "Verified",
-            "details": "Liveness verified (demo mode - no selfie provided).",
-            "liveness_score": 90.0
-        }
-    
-    if FACE_MATCHING_AVAILABLE:
-        try:
-            # Decode and detect face
-            image = decode_base64_image(selfie_data)
-            if image is None:
-                return {"status": "Failed", "details": "Could not decode selfie image."}
-            
-            face_bbox = detect_face(image)
-            if face_bbox is None:
-                return {"status": "Failed", "details": "No face detected in selfie."}
-            
-            # Calculate liveness score based on face detection confidence
-            # (In production, use an actual liveness model)
-            x1, y1, x2, y2 = face_bbox
-            face_area = (x2 - x1) * (y2 - y1)
-            image_area = image.shape[0] * image.shape[1]
-            face_ratio = face_area / image_area
-            
-            # Face should be at least 10% of image for good capture
-            if face_ratio >= 0.10:
-                liveness_score = min(0.95, 0.7 + face_ratio)
-                return {
-                    "status": "Verified",
-                    "details": "Face detected and liveness confirmed.",
-                    "liveness_score": round(liveness_score * 100, 1)
-                }
-            else:
-                return {
-                    "status": "Failed",
-                    "details": "Face too small in frame. Please position closer."
-                }
-                
-        except Exception as e:
-            logger.error(f"Liveness check error: {e}")
-            return {"status": "Failed", "details": f"Liveness error: {str(e)}"}
-    
-    # Fallback: simulated
-    print("Using simulated liveness check")
-    time.sleep(1)
-    return {
-        "status": "Verified",
-        "details": "Liveness verified (demo mode).",
-        "liveness_score": 95.0
-    }
-
-
-@tool
-def verify_face_match(selfie_data: str, document_image_path: str) -> dict:
-    """
-    Matches face from selfie with face on document.
-    
-    Args:
-        selfie_data: Base64 encoded selfie image
-        document_image_path: Path to document image
-    
-    Returns:
-        Face matching result with similarity score
-    """
-    print("--- Running Face Matching ---")
-    
-    # If no selfie is provided, use demo mode for testing
-    if not selfie_data or len(selfie_data) < 100:
-        print("No valid selfie provided - using demo face match")
-        time.sleep(0.5)
-        return {
-            "status": "Verified",
-            "details": "Face match verified (demo mode - no selfie).",
-            "score": 92.5
-        }
-    
-    if FACE_MATCHING_AVAILABLE and document_image_path and os.path.exists(document_image_path):
-        try:
-            result = match_faces(selfie_data, document_image_path)
-            
-            if result.get('success'):
-                if result.get('match'):
-                    return {
-                        "status": "Verified",
-                        "details": f"Face match confirmed. Similarity: {result['score']}%",
-                        "score": result['score']
-                    }
-                else:
-                    return {
-                        "status": "Failed",
-                        "details": f"Face mismatch. Similarity: {result['score']}% (threshold: 60%)",
-                        "score": result['score']
-                    }
-            else:
-                return {"status": "Failed", "details": result.get('message', 'Face matching failed.')}
-                
-        except Exception as e:
-            logger.error(f"Face matching error: {e}")
-            return {"status": "Failed", "details": f"Face match error: {str(e)}"}
-    
-    # Fallback: simulated
-    print("Using simulated face matching")
-    time.sleep(1)
-    return {
-        "status": "Verified",
-        "details": "Face match verified (demo mode).",
-        "score": 87.5
-    }
-
-
-# =============================================================================
-# Level 2 Tools - PAN Verification
-# =============================================================================
-
+# --- Level 1 Tools ---
 @tool
 def verify_pan(pan_data: dict) -> dict:
     """
-    Verifies PAN details against database.
+    Verifies the extracted PAN JSON data against the mock 'source_pan_holders' DB.
     """
     print(f"--- Verifying PAN {pan_data.get('pan_number')} ---")
-    time.sleep(1)
+    time.sleep(1) # Simulate API delay
     
-    pan_number = pan_data.get('pan_number', '')
-    full_name = pan_data.get('full_name', '')
+    # --- Date Conversion ---
+    # The JSON will have a string date, but MongoDB was populated with datetime objects.
+    # We must convert the string from the JSON to a datetime object for the query.
+    try:
+        if 'dob' in pan_data:
+             pan_data['dob_dt'] = datetime.strptime(pan_data['dob'], '%Y-%m-%d')
+    except ValueError:
+        return {"status": "Failed", "details": "Invalid DOB format. Expected YYYY-MM-DD."}
     
-    if DATABASE_AVAILABLE:
-        # Check against mock database
-        result = db.verify_pan(pan_number)
-        if result and result.get('verified'):
-            return {
-                "status": "Verified",
-                "details": "PAN matched with database.",
-                "pan_number": pan_number
-            }
+    record = db.find_pan_record(pan_data)
     
-    # Simple validation
-    if pan_number and len(pan_number) == 10:
-        return {
-            "status": "Verified",
-            "details": "PAN format validated.",
-            "pan_number": pan_number
-        }
+    if not record:
+        return {"status": "Failed", "details": "PAN details did not match."}
     
-    return {"status": "Failed", "details": "PAN validation failed."}
+    if record['pan_status'] != "Active":
+        return {"status": "Failed", "details": f"PAN status is '{record['pan_status']}'."}
+        
+    return {"status": "Verified", "details": "PAN details matched and status is Active."}
 
-
-# =============================================================================
-# Level 3 Tools - Bank + Video KYC (Simulated)
-# =============================================================================
+# --- Level 2 Tools ---
+@tool
+def verify_aadhaar(aadhaar_data: dict) -> dict:
+    """
+    Verifies the extracted Aadhaar JSON data against the mock 'source_aadhaar_holders' DB.
+    """
+    print(f"--- Verifying Aadhaar {aadhaar_data.get('aadhaar_number')} ---")
+    time.sleep(1.5) # Simulate API delay
+    
+    # --- Date Conversion ---
+    try:
+        if 'dob' in aadhaar_data:
+             aadhaar_data['dob_dt'] = datetime.strptime(aadhaar_data['dob'], '%Y-%m-%d')
+    except ValueError:
+        return {"status": "Failed", "details": "Invalid DOB format. Expected YYYY-MM-DD."}
+        
+    record = db.find_aadhaar_record(aadhaar_data)
+    
+    if not record:
+        return {"status": "Failed", "details": "Aadhaar details did not match."}
+        
+    if record['status'] != "Active":
+        return {"status": "Failed", "details": f"Aadhaar status is '{record['status']}'."}
+    
+    # Return the verified address for L3 checks
+    return {"status": "Verified", "details": "Aadhaar details matched.", "address": record.get('address')}
 
 @tool
-def verify_bank_account(account_number: str, ifsc: str, expected_name: str) -> dict:
-    """Verifies bank account using Penny Drop API."""
-    import sys
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    try:
-        from services.penny_drop import verify_bank_penny_drop
-        return verify_bank_penny_drop(account_number, ifsc, expected_name)
-    except Exception as e:
-        logger.error(f"Failed to import Penny Drop service: {e}")
-        return {"status": "Failed", "details": f"Penny Drop Service Unavailable: {e}"}
+def verify_liveness(selfie_image_path: str) -> dict:
+    """MOCK: Simulates a liveness/selfie check."""
+    print(f"--- Performing liveness check on {selfie_image_path} ---")
+    time.sleep(2) # Simulate ML model processing
+    if "good_selfie.jpg" in selfie_image_path.lower():
+        return {"status": "Verified", "liveness_score": 0.95, "face_match": True}
+    return {"status": "Failed", "details": "Liveness check failed (e.g., spoof, blur)."}
+
+# --- Level 3 Tools ---
+@tool
+def verify_bank_account(account_number: str, ifsc: str) -> dict:
+    """MOCK: Simulates a 'penny drop' bank account verification."""
+    print(f"--- Verifying Bank Account {account_number} ---")
     time.sleep(1)
     if account_number and ifsc:
         return {"status": "Verified", "details": "Account holder name matched."}
     return {"status": "Failed", "details": "Bank account verification failed."}
 
-
 @tool
 def verify_address(address_data: dict, aadhaar_address: dict) -> dict:
-    """Simulates address verification against Aadhaar."""
+    """
+    MOCK: Simulates matching address from an OCR'd doc (e.g., utility bill)
+    against the verified Aadhaar address.
+    """
     print(f"--- Verifying Address ---")
     time.sleep(0.5)
     
     if not aadhaar_address:
-        return {"status": "Verified", "details": "Address recorded (no Aadhaar address to compare)."}
-    
+         return {"status": "Failed", "details": "Aadhaar address not found for comparison."}
+         
+    # Simple mock check
     if address_data.get('pincode') == aadhaar_address.get('pincode'):
-        return {"status": "Verified", "details": "Address Pincode matched Aadhaar."}
-    return {"status": "Verified", "details": "Address recorded."}
-
-
+         return {"status": "Verified", "details": "Address Pincode matched Aadhaar."}
+    return {"status": "Failed", "details": "Address proof did not match Aadhaar address."}
+    
 @tool
-def verify_video_kyc(user_id: str) -> dict:
-    """Creates a secure Video KYC WebRTC session."""
-    import sys
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    try:
-        from services.video_kyc import create_video_kyc_room
-        result = create_video_kyc_room(user_id)
-        if result.get("success"):
-            return {
-                "status": "Verified",
-                "details": f"Video KYC session generated. User needs to join: {result.get('room_url')}",
-                "officer_id": "V-AGENT-007",
-                "room_url": result.get("room_url")
-            }
-        else:
-            return {"status": "Failed", "details": f"Failed to generate Video Room: {result.get('error')}"}
-    except Exception as e:
-        logger.error(f"Failed to load Video KYC module: {e}")
-        return {"status": "Failed", "details": "Video KYC Service Unavailable"}
+def verify_video_kyc(video_call_id: str) -> dict:
+    """MOCK: Simulates a Video KYC (V-CIP) call completion check."""
+    print(f"--- Checking status of video call {video_call_id} ---")
+    time.sleep(3) # Simulate agent review
+    return {
+        "status": "Verified", 
+        "details": "Video call completed and approved by agent.",
+        "officer_id": "V-AGENT-007",
+    }
 
-
-# =============================================================================
-# Level 4 Tools - Income + AML/PEP
-# =============================================================================
-
+# --- Level 4 Tools ---
 @tool
 def verify_income_docs(income_doc_data: dict) -> dict:
-    """Simulates income document verification."""
+    """MOCK: Simulates income verification (e.g., ITR, salary slip)."""
     print(f"--- Verifying Income Docs ---")
     time.sleep(1)
     if income_doc_data.get("annual_income", 0) > 500000:
-        return {"status": "Verified", "details": "Income documents validated."}
-    return {"status": "Verified", "details": "Income documents recorded."}
-
+        return {"status": "Verified", "details": "Income documents look valid."}
+    return {"status": "Failed", "details": "Income docs not provided or invalid."}
 
 @tool
 def run_llm_aml_pep_check(full_name: str, pan: str) -> dict:
     """
-    Performs AML/PEP risk assessment.
-    In production, this uses Groq LLM.
+    Performs an LLM-based risk assessment for AML/PEP screening using Groq.
     """
-    import sys
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    print(f"--- Running Groq LLM AML/PEP Check for: {full_name} ---")
+    
     try:
-        from services.aml_check import check_aml_pep_risk
-        return check_aml_pep_risk(full_name, pan)
+        llm = ChatGroq(
+            model="meta-llama/llama-4-scout-17b-16e-instruct",
+            temperature=0.1,
+            api_key=groq_settings.GROQ_API_KEY
+        )
+
+        prompt_template = ChatPromptTemplate.from_messages([
+            ("system", """
+You are a senior compliance officer at a financial institution. Your task is to conduct an Anti-Money Laundering (AML) and Politically Exposed Person (PEP) risk assessment.
+
+Analyze the user's name.
+- Simulate a search against known sanctions lists, PEP databases, or adverse media mentions.
+- Provide a concise one-paragraph summary of your findings.
+- Conclude with a final, clear risk rating on its own line, in the format: "RISK: [Clear | Review | High]"
+
+**Simulated Watchlist Data (for this exercise only):**
+- 'Adithya Vardan M': Clear.
+- 'Jane Doe': Clear.
+- 'Robert K Mueller': Potential PEP match (US Politician).
+- 'Vikram Singh': Potential adverse media (fraud allegations).
+- 'Chang Wei': Potential sanctions list match.
+"""),
+            ("user", "Please perform risk assessment for the following individual:\nName: {full_name}\nPAN: {pan}")
+        ])
+
+        chain = prompt_template | llm | StrOutputParser()
+        
+        response = chain.invoke({
+            "full_name": full_name,
+            "pan": pan
+        })
+
+        print(f"--- Groq LLM Response ---\n{response}\n-------------------------")
+        
+        # Parse the LLM's response
+        if "RISK: CLEAR" in response.upper():
+            return {"status": "Clear", "details": response}
+        elif "RISK: REVIEW" in response.upper() or "RISK: MEDIUM" in response.upper():
+            return {"status": "Review", "details": response}
+        elif "RISK: HIGH" in response.upper():
+            return {"status": "High", "details": response}
+        else:
+            return {"status": "Review", "details": f"LLM analysis complete, but risk rating was unclear. Review required.\n{response}"}
+
     except Exception as e:
-        logger.error(f"Failed to load AML/PEP module: {e}")
-        return {"status": "Failed", "details": "AML/PEP Service Unavailable"}
+        print(f"Error during Groq AML check: {e}")
+        return {"status": "Failed", "details": f"AML check failed due to an API error: {e}"}
+

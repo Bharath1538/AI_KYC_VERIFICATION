@@ -1,9 +1,11 @@
 /**
  * Face Liveness Detection JavaScript
- * Uses real face detection for verification
+ * Restored to Original UI but with Advanced MediaPipe Logic
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    const { FaceLandmarker, FilesetResolver } = mediapipe.tasks.vision;
+
     // DOM Elements
     const video = document.getElementById('livenessVideo');
     const faceCanvas = document.getElementById('faceCanvas');
@@ -30,126 +32,45 @@ document.addEventListener('DOMContentLoaded', () => {
     // State
     let mediaStream = null;
     let isRunning = false;
-    let faceDetector = null;
-    let consecutiveDetections = 0;
-    const REQUIRED_DETECTIONS = 5;
+    let faceLandmarker = null;
+    let lastVideoTime = -1;
+    let headTurnedState = { left: false, right: false };
 
-    const challenges = [
-        { step: 1, title: 'Face Detection', desc: 'Position your face in the oval', icon: 'scan-face', type: 'face' },
-        { step: 2, title: 'Blink Detection', desc: 'Blink your eyes naturally', icon: 'eye', type: 'blink' },
-        { step: 3, title: 'Smile Detection', desc: 'Give a natural smile', icon: 'smile', type: 'smile' },
-        { step: 4, title: 'Head Turn', desc: 'Slowly turn your head left then right', icon: 'move', type: 'turn' }
+    // Challenges Configuration
+    const allChallenges = [
+        { id: 'blink', title: 'Blink Detection', desc: 'Blink your eyes naturally', icon: 'eye', target: 2 },
+        { id: 'smile', title: 'Smile Detection', desc: 'Give a natural smile', icon: 'smile', target: 1 },
+        { id: 'turn', title: 'Head Turn', desc: 'Slowly turn your head left then right', icon: 'move', target: 2 }
     ];
 
-    // Face Detection using skin-tone and motion detection
-    async function detectFace() {
-        if (!video.videoWidth) return { hasFace: false, motion: 0 };
+    let sessionChallenges = [];
 
-        const canvas = document.createElement('canvas');
-        canvas.width = 160;
-        canvas.height = 120;
-        const ctx = canvas.getContext('2d');
-
-        // Calculate crop to match object-fit: cover for 4:3 container
-        const vidW = video.videoWidth;
-        const vidH = video.videoHeight;
-        let cropW = vidW;
-        let cropH = vidH;
-        let cropX = 0;
-        let cropY = 0;
-
-        if (vidW / vidH > 4 / 3) {
-            cropW = vidH * (4 / 3);
-            cropX = (vidW - cropW) / 2;
-        } else {
-            cropH = vidW * (3 / 4);
-            cropY = (vidH - cropH) / 2;
-        }
-
-        // Mirror to match the video
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
-        ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
-
-        // Define Oval Region (Center)
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const radiusX = canvas.width * 0.3;
-        const radiusY = canvas.height * 0.4;
-
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-
-        let edgesInOval = 0;
-        let totalOval = 0;
-        let diffPixels = 0;
-
-        if (!window.prevFaceData) {
-            window.prevFaceData = new Uint8ClampedArray(data.length);
-        }
-
-        for (let y = 1; y < canvas.height - 1; y += 2) {
-            for (let x = 1; x < canvas.width - 1; x += 2) {
-                const i = (y * canvas.width + x) * 4;
-
-                // Math to check if point is inside ellipse
-                const dx = (x - centerX) / radiusX;
-                const dy = (y - centerY) / radiusY;
-                const inOval = (dx * dx + dy * dy) <= 1;
-
-                if (inOval) {
-                    totalOval++;
-
-                    // Simple brightness calculation (luminosity)
-                    const r = data[i], g = data[i + 1], b = data[i + 2];
-                    const brightness = (r + g + b) / 3;
-
-                    // Simple edge detection: compare to pixel to the left to find facial features
-                    const leftI = (y * canvas.width + (x - 1)) * 4;
-                    const leftR = data[leftI], leftG = data[leftI + 1], leftB = data[leftI + 2];
-                    const leftBrightness = (leftR + leftG + leftB) / 3;
-
-                    // If there's a sharp contrast in the oval (eyes, nose, mouth edges)
-                    if (Math.abs(brightness - leftBrightness) > 10) {
-                        edgesInOval++;
-                    }
-
-                    // Motion detection in oval
-                    const prevR = window.prevFaceData[i];
-                    if (Math.abs(r - prevR) > 15) {
-                        diffPixels++;
-                    }
-                }
-
-                window.prevFaceData[i] = data[i];
-            }
-        }
-
-        const edgeRatio = edgesInOval / Math.max(1, totalOval);
-        const motionRatio = diffPixels / Math.max(1, totalOval);
-
-        // Face is present if there is sufficient texture/edges inside the oval (i.e., not a blank wall)
-        const hasFace = (edgeRatio > 0.05);
-
-        return {
-            hasFace: hasFace,
-            motion: motionRatio
-        };
+    async function initMediaPipe() {
+        const vision = await FilesetResolver.forVisionTasks(
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+        );
+        faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+            baseOptions: {
+                modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
+                delegate: "GPU"
+            },
+            outputFaceBlendshapes: true,
+            runningMode: "VIDEO",
+            numFaces: 1
+        });
+        console.log("MediaPipe Loaded");
     }
 
     async function startCamera() {
         try {
             mediaStream = await navigator.mediaDevices.getUserMedia({
-                video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
+                video: { width: 640, height: 480, facingMode: 'user' }
             });
             video.srcObject = mediaStream;
             await video.play();
-            faceCanvas.width = 640;
-            faceCanvas.height = 480;
             return true;
         } catch (err) {
             console.error('Camera error:', err);
-            showToast('Unable to access camera', 'error');
             return false;
         }
     }
@@ -163,236 +84,199 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function startLivenessCheck() {
         if (isRunning) return;
+        
+        startBtn.disabled = true;
+        startBtn.innerHTML = '<i data-lucide="loader" class="spinning"></i><span>Initializing...</span>';
+        lucide.createIcons();
 
+        if (!faceLandmarker) await initMediaPipe();
         const cameraStarted = await startCamera();
-        if (!cameraStarted) return;
+        if (!cameraStarted) {
+            startBtn.disabled = false;
+            startBtn.innerHTML = '<i data-lucide="play"></i><span>Start Liveness Check</span>';
+            lucide.createIcons();
+            return;
+        }
 
         isRunning = true;
         startBtn.classList.add('hidden');
         faceGuide.classList.add('active');
 
-        console.log('Starting liveness check with face detection...');
+        // Randomized sequence
+        sessionChallenges = [
+            { id: 'face', title: 'Face Detection', desc: 'Position your face in the oval', icon: 'scan-face', target: 1 },
+            ...shuffleArray([...allChallenges])
+        ];
 
-        for (let i = 0; i < challenges.length; i++) {
+        // Update UI Step mapping dynamically
+        updateStepListUI();
+
+        for (let i = 0; i < sessionChallenges.length; i++) {
             if (!isRunning) break;
-
-            const challenge = challenges[i];
-            console.log(`Starting step ${challenge.step}: ${challenge.title}`);
-
-            updateChallenge(challenge);
-            updateStepStatus(challenge.step, 'active');
+            const challenge = sessionChallenges[i];
+            const stepNum = i + 1;
+            
+            updateChallengeUI(challenge);
+            updateStepStatus(stepNum, 'active');
 
             const success = await runChallenge(challenge);
-            console.log(`Step ${challenge.step} result: ${success ? 'SUCCESS' : 'FAILED'}`);
-
             if (success) {
-                updateStepStatus(challenge.step, 'complete');
-                await sleep(500); // Give user a moment to rest before next step
+                updateStepStatus(stepNum, 'complete');
+                await sleep(500);
             } else {
-                updateStepStatus(challenge.step, 'failed');
-                showFailure('Verification timed out. Please follow the instructions and stay in the oval.');
+                updateStepStatus(stepNum, 'failed');
+                showFailure('Verification timed out. Please follow the instructions.');
                 return;
             }
         }
 
-        console.log('All challenges passed!');
-        showSuccess();
+        if (isRunning) showSuccess();
+    }
+
+    function updateStepListUI() {
+        sessionChallenges.forEach((c, index) => {
+            const stepNum = index + 1;
+            const stepEl = steps[stepNum];
+            if (stepEl) {
+                stepEl.querySelector('h4').textContent = c.title;
+                stepEl.querySelector('p').textContent = c.desc;
+            }
+        });
     }
 
     async function runChallenge(challenge) {
         return new Promise((resolve) => {
-            consecutiveDetections = 0;
+            let count = 0;
             const startTime = Date.now();
-            let hasCompletedAction = false;
+            if (challenge.id === 'turn') headTurnedState = { left: false, right: false };
 
-            const checkInterval = setInterval(async () => {
-                const elapsed = Date.now() - startTime;
-                const { hasFace, motion } = await detectFace();
+            const check = async () => {
+                if (!isRunning) return resolve(false);
 
-                let progressVal = 0;
+                if (video.currentTime !== lastVideoTime) {
+                    lastVideoTime = video.currentTime;
+                    const results = faceLandmarker.detectForVideo(video, lastVideoTime);
+                    
+                    if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+                        const blendshapes = results.faceBlendshapes[0].categories;
+                        const landmarks = results.faceLandmarks[0];
 
-                // Stop if we don't detect a face
-                if (!hasFace) {
-                    consecutiveDetections = Math.max(0, consecutiveDetections - 1);
-                    guideText.textContent = "Please place your face inside the oval!";
-                    guideText.style.color = "#ef4444";
-                    faceGuide.style.opacity = '0.3';
-                } else {
-                    guideText.textContent = challenge.desc;
-                    guideText.style.color = "var(--text-primary)";
-                    faceGuide.style.opacity = '1';
+                        let detected = false;
+                        if (challenge.id === 'face') detected = true;
+                        else if (challenge.id === 'blink') {
+                            const blinkLeft = findBlendshape(blendshapes, 'eyeBlinkLeft');
+                            const blinkRight = findBlendshape(blendshapes, 'eyeBlinkRight');
+                            if (blinkLeft > 0.5 && blinkRight > 0.5) detected = true;
+                        }
+                        else if (challenge.id === 'smile') {
+                            const smile = findBlendshape(blendshapes, 'mouthSmileLeft');
+                            if (smile > 0.5) detected = true;
+                        }
+                        else if (challenge.id === 'turn') {
+                            const nose = landmarks[1];
+                            const leftEye = landmarks[33];
+                            const rightEye = landmarks[263];
+                            const leftDist = Math.abs(nose.x - leftEye.x);
+                            const rightDist = Math.abs(nose.x - rightEye.x);
+                            
+                            if (leftDist < (rightDist * 0.45)) headTurnedState.right = true;
+                            if (rightDist < (leftDist * 0.45)) headTurnedState.left = true;
+                            
+                            if (headTurnedState.left && headTurnedState.right) {
+                                detected = true;
+                            } else {
+                                if (headTurnedState.left) guideText.textContent = "Now turn Right";
+                                else if (headTurnedState.right) guideText.textContent = "Now turn Left";
+                            }
+                        }
 
-                    if (challenge.type === 'face') {
-                        consecutiveDetections++;
-                        progressVal = (consecutiveDetections / 10) * 100;
-                        if (consecutiveDetections >= 10) hasCompletedAction = true;
-                    }
-                    else if (challenge.type === 'blink') {
-                        // Blink causes a sharp spike in motion
-                        if (motion > 0.03 && motion < 0.15) consecutiveDetections++;
-                        progressVal = (consecutiveDetections / 3) * 100;
-                        if (consecutiveDetections >= 3) hasCompletedAction = true;
-                    }
-                    else if (challenge.type === 'smile') {
-                        // Smile causes slight motion that settles quickly
-                        if (motion > 0.01 && motion < 0.1) consecutiveDetections++;
-                        progressVal = (consecutiveDetections / 5) * 100;
-                        if (consecutiveDetections >= 5) hasCompletedAction = true;
-                    }
-                    else if (challenge.type === 'turn') {
-                        // Head turn causes massive, sustained motion
-                        if (motion > 0.12) consecutiveDetections++;
-                        progressVal = (consecutiveDetections / 4) * 100;
-                        if (consecutiveDetections >= 4) hasCompletedAction = true;
+                        if (detected) {
+                            count++;
+                            setProgress((count / challenge.target) * 100);
+                            if (count >= challenge.target) return resolve(true);
+                        }
+                    } else {
+                        guideText.textContent = "Face not detected";
+                        guideText.style.color = "#ef4444";
                     }
                 }
 
-                setProgress(Math.min(Math.max(progressVal, 0), 100));
-
-                if (hasCompletedAction) {
-                    clearInterval(checkInterval);
-                    resolve(true);
-                }
-
-                // 15 seconds max duration per step to be generous
-                if (elapsed > 15000) {
-                    clearInterval(checkInterval);
-                    resolve(false);
-                }
-            }, 150);
+                if (Date.now() - startTime > 15000) return resolve(false);
+                requestAnimationFrame(check);
+            };
+            check();
         });
     }
 
-    function sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
+    function findBlendshape(blendshapes, name) {
+        const item = blendshapes.find(b => b.categoryName === name);
+        return item ? item.score : 0;
     }
 
-    function updateChallenge(challenge) {
+    function updateChallengeUI(challenge) {
         challengeIcon.innerHTML = `<i data-lucide="${challenge.icon}"></i>`;
         challengeTitle.textContent = challenge.title;
         challengeDesc.textContent = challenge.desc;
         guideText.textContent = challenge.desc;
         guideText.style.color = "var(--text-primary)";
         lucide.createIcons();
-        progressRing.classList.remove('hidden');
         setProgress(0);
     }
 
-    function updateStepStatus(step, status) {
-        const stepEl = steps[step];
+    function updateStepStatus(stepNum, status) {
+        const stepEl = steps[stepNum];
         if (!stepEl) return;
-
         stepEl.classList.remove('active', 'complete', 'failed');
         stepEl.classList.add(status);
-
-        const statusContainer = stepEl.querySelector('.step-status');
-        if (!statusContainer) return;
-
-        if (status === 'active') {
-            statusContainer.innerHTML = '<i data-lucide="loader" class="spinning"></i>';
-        } else if (status === 'complete') {
-            statusContainer.innerHTML = '<i data-lucide="check-circle-2" class="success"></i>';
-        } else if (status === 'failed') {
-            statusContainer.innerHTML = '<i data-lucide="x-circle" class="failed"></i>';
-        }
+        const statusIcon = stepEl.querySelector('.step-status');
+        if (status === 'active') statusIcon.innerHTML = '<i data-lucide="loader" class="spinning"></i>';
+        else if (status === 'complete') statusIcon.innerHTML = '<i data-lucide="check-circle-2" class="success"></i>';
+        else if (status === 'failed') statusIcon.innerHTML = '<i data-lucide="x-circle" class="failed"></i>';
         lucide.createIcons();
     }
 
     function setProgress(percent) {
         const circumference = 2 * Math.PI * 54;
-        const offset = circumference - (percent / 100) * circumference;
-        progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
-        progressCircle.style.strokeDashoffset = offset;
+        progressCircle.style.strokeDashoffset = circumference - (percent / 100) * circumference;
     }
 
     function showSuccess() {
         isRunning = false;
-        progressRing.classList.add('hidden');
         faceGuide.classList.remove('active');
-        faceGuide.style.opacity = '1';
-
-        // Capture selfie - MIRRORED to match what user sees
+        livenessResult.classList.remove('hidden');
+        
+        // Capture selfie
         const ctx = faceCanvas.getContext('2d');
-
-        // Set canvas to video dimensions
-        faceCanvas.width = video.videoWidth || 640;
-        faceCanvas.height = video.videoHeight || 480;
-
-        // Mirror the canvas before drawing (like the CSS transform on video)
+        faceCanvas.width = video.videoWidth;
+        faceCanvas.height = video.videoHeight;
         ctx.save();
         ctx.scale(-1, 1);
         ctx.drawImage(video, -faceCanvas.width, 0, faceCanvas.width, faceCanvas.height);
         ctx.restore();
-
-        // Save the full mirrored selfie - face_matching.py handles face extraction
-        const selfieData = faceCanvas.toDataURL('image/jpeg', 0.9);
-
+        
         sessionStorage.setItem('livenessVerified', 'true');
-        sessionStorage.setItem('livenessTimestamp', Date.now().toString());
-        sessionStorage.setItem('livenessSelfie', selfieData);
-
-        console.log('Mirrored selfie captured:', faceCanvas.width, 'x', faceCanvas.height);
-
-        livenessResult.classList.remove('hidden');
-        resultIcon.className = 'result-icon success';
-        resultIcon.innerHTML = '<i data-lucide="shield-check"></i>';
-        resultTitle.textContent = 'Liveness Verified!';
-        resultDesc.textContent = 'Proceed to document verification for face matching.';
-        lucide.createIcons();
-
-        showToast('Liveness check passed!', 'success');
+        sessionStorage.setItem('livenessSelfie', faceCanvas.toDataURL('image/jpeg', 0.9));
+        
         stopCamera();
     }
 
-    function showFailure(message) {
+    function showFailure(msg) {
         isRunning = false;
-        progressRing.classList.add('hidden');
-        faceGuide.classList.remove('active');
-        faceGuide.style.opacity = '1';
-
+        resultTitle.textContent = "Verification Failed";
+        resultDesc.textContent = msg;
         livenessResult.classList.remove('hidden');
-        resultIcon.className = 'result-icon failed';
-        resultIcon.innerHTML = '<i data-lucide="shield-x"></i>';
-        resultTitle.textContent = 'Verification Failed';
-        resultDesc.textContent = message || 'Please try again.';
+        stopCamera();
+    }
 
-        const actionsDiv = livenessResult.querySelector('.result-actions');
-        if (!actionsDiv.querySelector('.retry')) {
-            const retryBtn = document.createElement('button');
-            retryBtn.className = 'continue-btn retry';
-            retryBtn.innerHTML = '<i data-lucide="refresh-cw"></i><span>Try Again</span>';
-            retryBtn.onclick = resetLiveness;
-            actionsDiv.appendChild(retryBtn);
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
         }
-
-        lucide.createIcons();
-        showToast('Liveness check failed', 'error');
-        stopCamera();
+        return array;
     }
 
-    function resetLiveness() {
-        isRunning = false;
-        consecutiveDetections = 0;
-
-        livenessResult.classList.add('hidden');
-        startBtn.classList.remove('hidden');
-        faceGuide.classList.remove('active');
-
-        Object.values(steps).forEach(stepEl => {
-            stepEl.classList.remove('active', 'complete', 'failed');
-            const statusContainer = stepEl.querySelector('.step-status');
-            if (statusContainer) {
-                statusContainer.innerHTML = '<i data-lucide="circle" class="pending"></i>';
-            }
-        });
-
-        const retryBtn = livenessResult.querySelector('.retry');
-        if (retryBtn) retryBtn.remove();
-
-        lucide.createIcons();
-    }
+    function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
     startBtn.addEventListener('click', startLivenessCheck);
-    window.addEventListener('beforeunload', stopCamera);
-    lucide.createIcons();
 });

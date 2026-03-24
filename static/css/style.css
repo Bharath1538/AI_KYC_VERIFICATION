@@ -1876,3 +1876,104 @@ textarea.form-input {
         padding: 0.75rem 1rem;
     }
 }
+/* =====================================================
+   Sidebar Nav Section Labels
+   ===================================================== */
+.nav-section-label {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0 1rem 0.25rem;
+    margin-top: 0.5rem;
+}
+
+/* =====================================================
+   Dashboard Hero CTA Button
+   ===================================================== */
+.hero-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 1.5rem;
+    padding: 0.85rem 1.75rem;
+    background: var(--gradient-blue);
+    color: white;
+    text-decoration: none;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.35);
+}
+.hero-cta-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+.hero-cta-btn svg { width: 18px; height: 18px; }
+
+/* =====================================================
+   How It Works Strip
+   ===================================================== */
+.how-it-works { margin-bottom: 2rem; }
+.how-it-works .section-header { margin-bottom: 1.25rem; }
+.how-steps {
+    display: flex;
+    align-items: flex-start;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius-lg);
+    padding: 2rem;
+}
+.how-step {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.75rem;
+}
+.how-step-icon {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: rgba(59, 130, 246, 0.12);
+    border: 2px solid currentColor;
+    display: flex; align-items: center; justify-content: center;
+}
+.how-step-icon svg { width: 24px; height: 24px; }
+.how-step-num {
+    width: 22px; height: 22px;
+    background: var(--bg-tertiary);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 700; color: var(--text-secondary);
+}
+.how-step h4 { font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin: 0; }
+.how-step p { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin: 0; max-width: 170px; }
+.how-step-arrow { display: flex; align-items: center; padding-top: 1rem; color: var(--text-muted); flex-shrink: 0; padding: 0 0.5rem; }
+.how-step-arrow svg { width: 20px; height: 20px; }
+
+/* =====================================================
+   Workflow Begin Verification Banner
+   ===================================================== */
+.workflow-cta-banner {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    border-radius: var(--border-radius);
+    padding: 1rem 1.5rem; margin-bottom: 1.5rem;
+}
+.workflow-cta-text {
+    display: flex; align-items: center; gap: 0.75rem;
+    color: var(--text-secondary); font-size: 0.9rem;
+}
+.workflow-cta-text svg { width: 18px; height: 18px; color: var(--accent-blue); flex-shrink: 0; }
+.workflow-begin-btn {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.65rem 1.25rem;
+    background: var(--gradient-blue); color: white;
+    text-decoration: none; border-radius: var(--border-radius);
+    font-weight: 600; font-size: 0.85rem; white-space: nowrap;
+    transition: opacity var(--transition-fast); flex-shrink: 0;
+}
+.workflow-begin-btn:hover { opacity: 0.88; }
+.workflow-begin-btn svg { width: 16px; height: 16px; }

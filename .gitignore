@@ -10,3 +10,11 @@ __pycache__/
 uploads/
 verified_docs/
 .env
+
+# Log files
+*.log
+debug_output.log
+server_log.txt
+server_stderr.log
+server_stdout.log
+notes.txt

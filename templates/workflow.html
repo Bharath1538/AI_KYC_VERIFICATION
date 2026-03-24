@@ -11,6 +11,19 @@
     <p class="page-subtitle">Complete multi-level identity verification workflow</p>
 </div>
 
+<!-- Guided CTA Banner -->
+<div class="workflow-cta-banner">
+    <div class="workflow-cta-text">
+        <i data-lucide="info"></i>
+        <span>New here? Start with <strong>Face Liveness</strong> then continue to document verification.</span>
+    </div>
+    <a href="/liveness" class="workflow-begin-btn">
+        <i data-lucide="play-circle"></i>
+        <span>Begin Verification</span>
+        <i data-lucide="arrow-right"></i>
+    </a>
+</div>
+
 <div class="workflow-container">
     <!-- Level Progress -->
     <div class="level-progress">
@@ -43,17 +56,7 @@
             </div>
             <div class="card-body">
 
-                <!-- Demo Profiles -->
-                <div style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                    <button type="button" onclick="loadDemoProfile('pass')" class="btn"
-                        style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; font-size: 0.75rem; padding: 0.5rem;">
-                        <i data-lucide="check-circle"></i> Demo: Valid User
-                    </button>
-                    <button type="button" onclick="loadDemoProfile('fail')" class="btn"
-                        style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; font-size: 0.75rem; padding: 0.5rem;">
-                        <i data-lucide="x-circle"></i> Demo: Invalid User (Fails Check)
-                    </button>
-                </div>
+
 
                 <!-- User ID -->
                 <div class="form-group">
@@ -183,12 +186,13 @@
 
     <!-- Right: Logs & Results -->
     <div class="workflow-results">
-        <!-- Live Log -->
+        <!-- Live Log (collapsed by default) -->
         <div class="card">
-            <div class="card-header">
+            <div class="card-header" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;" onclick="toggleLog()">
                 <h3><i data-lucide="terminal"></i> Verification Log</h3>
+                <span id="logToggleIcon" style="font-size:0.8rem; color: var(--text-secondary);">[+ Show]</span>
             </div>
-            <div class="card-body">
+            <div class="card-body" id="logCardBody" style="display:none;">
                 <div id="workflowLog" class="log-container">
                     <p class="log-placeholder">Click "Start Verification" to begin...</p>
                 </div>

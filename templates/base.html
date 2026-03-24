@@ -34,25 +34,30 @@
         </div>
 
         <nav class="sidebar-nav">
+            <!-- Main Flow -->
+            <span class="nav-section-label">MAIN</span>
             <a href="/" class="nav-item {% if request.url.path == '/' %}active{% endif %}">
                 <i data-lucide="layout-dashboard"></i>
-                <span>Dashboard</span>
-            </a>
-            <a href="/liveness" class="nav-item {% if '/liveness' in request.url.path %}active{% endif %}">
-                <i data-lucide="scan-face"></i>
-                <span>Face Liveness</span>
+                <span>Home</span>
             </a>
             <a href="/workflow" class="nav-item {% if '/workflow' in request.url.path %}active{% endif %}">
-                <i data-lucide="layers"></i>
-                <span>Staged Workflow</span>
-            </a>
-            <a href="/verify/aadhaar" class="nav-item {% if '/verify' in request.url.path %}active{% endif %}">
-                <i data-lucide="file-check"></i>
-                <span>Verify Documents</span>
+                <i data-lucide="shield-check"></i>
+                <span>Start Verification</span>
             </a>
             <a href="/history" class="nav-item {% if '/history' in request.url.path %}active{% endif %}">
                 <i data-lucide="history"></i>
                 <span>History</span>
+            </a>
+
+            <!-- Tools -->
+            <span class="nav-section-label" style="margin-top: 0.75rem;">TOOLS</span>
+            <a href="/liveness" class="nav-item {% if '/liveness' in request.url.path %}active{% endif %}">
+                <i data-lucide="scan-face"></i>
+                <span>Face Liveness</span>
+            </a>
+            <a href="/verify/aadhaar" class="nav-item {% if '/verify' in request.url.path %}active{% endif %}">
+                <i data-lucide="file-check"></i>
+                <span>Document Scan</span>
             </a>
             <a href="#" class="nav-item disabled">
                 <i data-lucide="settings"></i>

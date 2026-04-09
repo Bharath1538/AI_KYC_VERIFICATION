@@ -18,9 +18,9 @@ if (mobileMenuToggle) {
 // Close sidebar when clicking outside on mobile
 document.addEventListener('click', (e) => {
     if (window.innerWidth <= 768 &&
-        sidebar.classList.contains('open') &&
+        sidebar && sidebar.classList.contains('open') &&
         !sidebar.contains(e.target) &&
-        !mobileMenuToggle.contains(e.target)) {
+        (!mobileMenuToggle || !mobileMenuToggle.contains(e.target))) {
         sidebar.classList.remove('open');
     }
 });

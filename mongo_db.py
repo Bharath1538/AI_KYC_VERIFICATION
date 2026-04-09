@@ -51,10 +51,12 @@ def get_mongo_client():
 
 try:
     client = get_mongo_client()
-    db = client[settings.MONGO_DB_NAME] # Explicitly get DB by name
+    db = client[settings.MONGO_DB_NAME] if settings else None
 except Exception as e:
-    print(f"Failed to initialize MongoDB. Exiting. Error: {e}")
-    exit(1)
+    print(f"WARNING: Failed to connect to MongoDB: {e}")
+    print("The app will start in degraded mode — database-backed features will be unavailable.")
+    client = None
+    db = None
 
 
 # --- Mock Data ---
@@ -183,8 +185,10 @@ def populate_mock_data():
 
 def get_all_users():
     """Fetches all users from the application_users collection."""
+    if db is None:
+        return []
     try:
-        users = list(db.application_users.find({}, {"_id": 0})) # Project to remove ObjectId
+        users = list(db.application_users.find({}, {"_id": 0}))
         return users
     except Exception as e:
         print(f"Error fetching all users: {e}")
@@ -192,6 +196,8 @@ def get_all_users():
 
 def get_user_profile(user_id: str):
     """Fetches a single user's profile."""
+    if db is None:
+        return None
     try:
         profile = db.application_users.find_one({"user_id": user_id}, {"_id": 0})
         return profile
@@ -232,6 +238,8 @@ def create_verification_log(log_data: dict):
 
 def find_pan_record(pan_data: dict):
     """Finds a matching PAN record in the source DB."""
+    if db is None:
+        return None
     try:
         query = {
             "pan_number": pan_data.get('pan_number'),
@@ -245,6 +253,8 @@ def find_pan_record(pan_data: dict):
 
 def find_aadhaar_record(aadhaar_data: dict):
     """Finds a matching Aadhaar record in the source DB."""
+    if db is None:
+        return None
     try:
         query = {
             "aadhaar_number": aadhaar_data.get('aadhaar_number'),

@@ -3,8 +3,12 @@
  * Restored to Original UI but with Advanced MediaPipe Logic
  */
 
+console.log('[Liveness] Script loaded');
+
+console.log('[Liveness] Script loaded correctly from network.');
+
 document.addEventListener('DOMContentLoaded', () => {
-    const { FaceLandmarker, FilesetResolver } = mediapipe.tasks.vision;
+    console.log('[Liveness] DOMContentLoaded fired, setting up UI...');
 
     // DOM Elements
     const video = document.getElementById('livenessVideo');
@@ -46,13 +50,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let sessionChallenges = [];
 
     async function initMediaPipe() {
+        // Dynamically import the ES module since the CDN serves it as ESM
+        const visionModule = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.mjs");
+        const { FaceLandmarker, FilesetResolver } = visionModule;
+        
         const vision = await FilesetResolver.forVisionTasks(
-            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
         );
         faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
             baseOptions: {
-                modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
-                delegate: "GPU"
+                modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task`,
+                delegate: "CPU"
             },
             outputFaceBlendshapes: true,
             runningMode: "VIDEO",
@@ -83,15 +91,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function startLivenessCheck() {
+        console.log('[Liveness] Start Button Clicked - v3 Running');
         if (isRunning) return;
         
         startBtn.disabled = true;
         startBtn.innerHTML = '<i data-lucide="loader" class="spinning"></i><span>Initializing...</span>';
         lucide.createIcons();
 
-        if (!faceLandmarker) await initMediaPipe();
+        try {
+            console.log('[Liveness] Initializing MediaPipe...');
+            if (!faceLandmarker) await initMediaPipe();
+            console.log('[Liveness] MediaPipe Ready');
+        } catch (err) {
+            console.error('MediaPipe init failed:', err);
+            challengeTitle.textContent = 'Initialization Failed';
+            challengeDesc.textContent = 'Error Detail: ' + (err.message || 'Check connection to Google/MediaPipe CDN');
+            startBtn.disabled = false;
+            startBtn.innerHTML = '<i data-lucide="play"></i><span>Retry</span>';
+            lucide.createIcons();
+            return;
+        }
+
         const cameraStarted = await startCamera();
         if (!cameraStarted) {
+            challengeTitle.textContent = 'Camera Unavailable';
+            challengeDesc.textContent = 'Could not access camera. Please allow camera permissions and try again.';
             startBtn.disabled = false;
             startBtn.innerHTML = '<i data-lucide="play"></i><span>Start Liveness Check</span>';
             lucide.createIcons();
@@ -150,6 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const startTime = Date.now();
             if (challenge.id === 'turn') headTurnedState = { left: false, right: false };
 
+            let isBlinking = false;
             const check = async () => {
                 if (!isRunning) return resolve(false);
 
@@ -166,11 +191,26 @@ document.addEventListener('DOMContentLoaded', () => {
                         else if (challenge.id === 'blink') {
                             const blinkLeft = findBlendshape(blendshapes, 'eyeBlinkLeft');
                             const blinkRight = findBlendshape(blendshapes, 'eyeBlinkRight');
-                            if (blinkLeft > 0.5 && blinkRight > 0.5) detected = true;
+                            
+                            const earLeft = calculateEAR(landmarks, [362, 385, 387, 263, 373, 380]);
+                            const earRight = calculateEAR(landmarks, [33, 160, 158, 133, 153, 144]);
+                            const earAvg = (earLeft + earRight) / 2;
+
+                            // Detection logic: use either high blendshape OR low EAR
+                            const isCurrentlyBlinking = (blinkLeft > 0.35 && blinkRight > 0.35) || (earAvg < 0.22);
+                            
+                            if (isCurrentlyBlinking && !isBlinking) {
+                                // Transition from open to closed detected
+                                isBlinking = true;
+                                detected = true; 
+                            } else if (!isCurrentlyBlinking && isBlinking) {
+                                // Transition from closed back to open
+                                isBlinking = false;
+                            }
                         }
                         else if (challenge.id === 'smile') {
                             const smile = findBlendshape(blendshapes, 'mouthSmileLeft');
-                            if (smile > 0.5) detected = true;
+                            if (smile > 0.3) detected = true;
                         }
                         else if (challenge.id === 'turn') {
                             const nose = landmarks[1];
@@ -208,6 +248,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function calculateEAR(landmarks, indices) {
+        const p1 = landmarks[indices[0]]; // Corner
+        const p2 = landmarks[indices[1]]; // Top
+        const p3 = landmarks[indices[2]]; // Top
+        const p4 = landmarks[indices[3]]; // Corner
+        const p5 = landmarks[indices[4]]; // Bottom
+        const p6 = landmarks[indices[5]]; // Bottom
+
+        const dVertical1 = euclideanDistance(p2, p6);
+        const dVertical2 = euclideanDistance(p3, p5);
+        const dHorizontal = euclideanDistance(p1, p4);
+
+        return (dVertical1 + dVertical2) / (2.0 * dHorizontal);
+    }
+
+    function euclideanDistance(point1, point2) {
+        return Math.sqrt(
+            Math.pow(point1.x - point2.x, 2) + 
+            Math.pow(point1.y - point2.y, 2) + 
+            Math.pow(point1.z - point2.z, 2)
+        );
+    }
+
     function findBlendshape(blendshapes, name) {
         const item = blendshapes.find(b => b.categoryName === name);
         return item ? item.score : 0;
@@ -243,6 +306,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function showSuccess() {
         isRunning = false;
         faceGuide.classList.remove('active');
+        faceGuide.style.display = 'none';
+        guideText.textContent = '';
         livenessResult.classList.remove('hidden');
         
         // Capture selfie
@@ -262,6 +327,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showFailure(msg) {
         isRunning = false;
+        faceGuide.classList.remove('active');
+        faceGuide.style.display = 'none';
+        guideText.textContent = '';
         resultTitle.textContent = "Verification Failed";
         resultDesc.textContent = msg;
         livenessResult.classList.remove('hidden');
